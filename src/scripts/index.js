@@ -1,2 +1,5 @@
-window.addEventListener('load', () => {
+import $ from 'jquery';
+
+$(document).ready(() => {
+  console.log('READY');
 });

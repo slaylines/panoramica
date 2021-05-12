@@ -10,8 +10,12 @@
     "build": "parcel build src/index.html",
     "postbuild": "cp -r static/* dist/"
   },
-  "dependencies": {},
+  "dependencies": {
+    "jquery": "3.6.0",
+    "normalize.css": "8.0.1"
+  },
   "devDependencies": {
-    "parcel-bundler": "1.12.5"
+    "parcel-bundler": "1.12.5",
+    "sass": "1.32.12"
   }
 }
