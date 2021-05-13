@@ -7,11 +7,11 @@
   "license": "MIT",
   "scripts": {
     "start": "parcel serve src/index.html --open",
-    "build": "parcel build src/index.html",
-    "postbuild": "cp -r static/* dist/"
+    "build": "parcel build src/index.html"
   },
   "dependencies": {
     "jquery": "3.6.0",
+    "jquery-ui": "1.12.1",
     "normalize.css": "8.0.1"
   },
   "devDependencies": {
