@@ -5,11 +5,43 @@
     <title>Panoramica</title>
 
     <link rel="stylesheet" href="./styles/index.scss">
+    <link rel="stylesheet" href="./styles/axis.scss">
     <script src="./scripts/index.js"></script>
   </head>
   <body>
-    <main>
+    <header>
       <h1>Panoramica</h1>
+    </header>
+    <main>
+      <div>
+        <div class="axis" id="axis"></div>
+        <div id="vc-container">
+            <div id="vc">
+                <div id="layerTimelines" class="unselectable">
+                </div>
+                <!--for popup's-->
+                <p class="bubbleInfo" style="display: inline-block; z-index: 3000;" id="defaultBox">
+                    <span></span>
+                </p>
+                <!--//////////-->
+                <div id="layerInfodots" class="unselectable">
+                </div>
+                <div id="iframe_layer" class="unselectable">
+                </div>
+            </div>
+            <div class="root-cloak-top" title="You can't create an event here"></div>
+            <div class="root-cloak-right" title="You can't create an event here"></div>
+            <div class="root-cloak-bottom" title="You can't create an event here"></div>
+            <div class="root-cloak-left" title="You can't create an event here"></div>
+            <!--div id="editCollectionButton">
+                <span class="image hidden" title="Customize Collection"><img src="/images/edit.svg" alt="" /></span>
+                <span class="title"></span>
+            </div-->
+            <div id="timeSeriesContainer" style="display: none;"></div>
+        </div>
+      </div>
     </main>
+    <footer>
+    </footer>
   </body>
 </html>
