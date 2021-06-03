@@ -1,4 +1,3 @@
-
 export const contentScaleMargin = 20;
 export const allowedMathImprecision = 0.000001;
 export const allowedMathImprecisionDecimals = parseInt(allowedMathImprecision.toExponential().split("-")[1]);
@@ -15,5 +14,5 @@ export const minSmallTickSpace = 8;
 export const smallTickLength = 7;
 
 
-//navigation constraints
+// Navigation constraints
 export const maxPermitedTimeRange = { left: -13700000000, right: 0 };

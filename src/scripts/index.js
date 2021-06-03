@@ -1,22 +1,21 @@
-import $ from 'jquery';
-import 'jquery-ui';
+// Using require here for jQuery-ui to work with jQuery: need global variable
+const $ = require('jquery');
+window.jQuery = $;
+require('jquery-ui');
+
 import Axis from './axis';
 import initWidgetVC from './vc';
 
 $(document).ready(() => {
+  const ax = $('#axis');
+  const axis = new Axis(ax);
 
-  var ax, axis, vc;
-  ax = $('#axis');
-  axis = new Axis(ax);
-
-  var range = { min: -10000000000, max: 50 };
+  const range = { min: -10000000000, max: 50 };
   axis.update(range);
 
+  const vc = $('#vc');
   initWidgetVC();
-	vc = $('#vc');
-	vc.virtualCanvas();
-
-  
+  vc.virtualCanvas();
 });
 
 
