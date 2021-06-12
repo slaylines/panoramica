@@ -1,54 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Panoramica</title>
 
-    <link rel="stylesheet" href="./styles/index.scss">
-    <link rel="stylesheet" href="./styles/axis.scss">
-    <script src="./scripts/index.js"></script>
-  </head>
-  <body>
-    <header>
-      <h1>Panoramica</h1>
-    </header>
-    <main>
-      <div>
-        <div class="axis" id="axis"></div>
-        <div id="vc-container">
-            <div id="vc">
-                <div id="layerTimelines" class="unselectable">
-                </div>
-                <!--for popup's-->
-                <p class="bubbleInfo" style="display: inline-block; z-index: 3000;" id="defaultBox">
-                    <span></span>
-                </p>
-                <!--//////////-->
-                <div id="layerInfodots" class="unselectable">
-                </div>
-                <div id="iframe_layer" class="unselectable">
-                </div>
-            </div>
-            <div class="root-cloak-top" title="You can't create an event here"></div>
-            <div class="root-cloak-right" title="You can't create an event here"></div>
-            <div class="root-cloak-bottom" title="You can't create an event here"></div>
-            <div class="root-cloak-left" title="You can't create an event here"></div>
-            <!--div id="editCollectionButton">
+<head>
+  <meta charset="utf-8">
+  <title>Panoramica</title>
+
+  <link rel="stylesheet" href="./styles/index.scss">
+  <link rel="stylesheet" href="./styles/axis.scss">
+  <script src="./scripts/index.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1>Panoramica</h1>
+  </header>
+  <main>
+    <div id="content">
+      <div class="axis" id="axis"></div>
+      <div id="vc-container">
+        <div id="vc">
+          <div id="layerTimelines" class="unselectable">
+          </div>
+          <!--for popup's-->
+          <p class="bubbleInfo" style="display: inline-block; z-index: 3000;" id="defaultBox">
+            <span></span>
+          </p>
+          <!--//////////-->
+          <div id="layerInfodots" class="unselectable">
+          </div>
+          <div id="iframe_layer" class="unselectable">
+          </div>
+        </div>
+        <div class="root-cloak-top" title="You can't create an event here"></div>
+        <div class="root-cloak-right" title="You can't create an event here"></div>
+        <div class="root-cloak-bottom" title="You can't create an event here"></div>
+        <div class="root-cloak-left" title="You can't create an event here"></div>
+        <!--div id="editCollectionButton">
                 <span class="image hidden" title="Customize Collection"><img src="/images/edit.svg" alt="" /></span>
                 <span class="title"></span>
             </div-->
-            <div id="timeSeriesContainer" style="display: none;"></div>
-        </div>
+        <div id="timeSeriesContainer" style="display: none;"></div>
       </div>
-    </main>
-    <footer>
-      <div class="githubLink">
-        <p>Look on 
-          <a href="https://github.com/slaylines/panoramica">GitHub</a>
-        </p>
-        <img src="./img/github-icon.svg" alt="githubIcon">
+
+      <div id="profile-form" class="cz-form cz-form-right cz-major-form unselectable"></div>
+      <div id="login-form" class="cz-form cz-form-right cz-major-form unselectable"></div>
+      <div id="header-edit-form" class="cz-form cz-form-right cz-major-form cz-header-edit-form unselectable"></div>
+      <div id="header-search-form" class="cz-form cz-form-left cz-major-form cz-header-search-form unselectable"></div>
+      <div id="timeSeriesDataForm" class="cz-form cz-form-right cz-major-form unselectable"></div>
+      <div id="toursList" class="cz-form cz-form-right cz-major-form cz-tourlist-form unselectable"></div>
+      <div id="tour-caption-form" class="cz-form cz-form-left cz-major-form cz-tour-caption-form unselectable"></div>
+      <div id="auth-edit-collection-form" class="cz-form cz-form-left cz-major-form cz-collection-form unselectable">
       </div>
-      </footer>
-    </footer>
-  </body>
+      <div id="auth-edit-collection-editors" class="cz-form cz-form-left cz-major-form cz-collection-form unselectable">
+      </div>
+      <div id="auth-edit-timeline-form" class="cz-form cz-form-left cz-form-timeline unselectable"></div>
+      <div id="auth-edit-exhibit-form" class="cz-form cz-form-left cz-form-exhibit unselectable"></div>
+      <div id="auth-edit-contentitem-form" class="cz-form cz-form-left cz-form-contentitem unselectable"></div>
+      <div id="auth-edit-tours-form" class="cz-form cz-form-left cz-form-tour-edit unselectable"></div>
+      <div id="message-window" class="cz-form cz-form-left cz-major-form cz-message-window unselectable"></div>
+      <div id="header-session-expired-form" class="cz-form cz-form-left cz-session-expired"></div>
+      <div id="mediapicker-form" class="cz-form cz-form-left unselectable"></div>
+      <div id="overlay"></div>
+    </div>
+  </main>
+  <footer>
+    <div class="githubLink">
+      <p>Look on
+        <a href="https://github.com/slaylines/panoramica">GitHub</a>
+      </p>
+      <img src="./img/github-icon.svg" alt="githubIcon">
+    </div>
+  </footer>
+  </footer>
+</body>
+
 </html>
