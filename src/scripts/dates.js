@@ -1,5 +1,7 @@
 import * as constants from './constants';
 
+const firstLeapYear = 1582;
+
 // array of month names to use in labels
 export const months = [
   'January',
@@ -32,94 +34,79 @@ export const daysInMonth = [
   31
 ];
 
-// by give date gives coordinate in virtual coordinates
+// get coordinate in virtual space for given date
 export function getCoordinateFromYMD(year, month, day) {
+  const sign = (year === -1) ? 1 : year / Math.abs(year);
+  const isLeap = isLeapYear(year);
+  const daysInYear = isLeap ? 366 : 365;
 
-  var sign = (year === -1) ? 1 : year / Math.abs(year),
-    isLeap = isLeapYear(year),
-    daysInYear = isLeap ? 366 : 365,
-    coord = (year > -1) ? year : year + 1;
+  let result = (year > -1) ? year : year + 1;
 
   // Get the number of day in the year.
-  var sumDaysOfMonths = function (s, d, i) {
+  const sumDaysOfMonths = (s, d, i) => {
     return s + +(i < month) * d;
   };
 
+  const days = daysInMonth.reduce(sumDaysOfMonths, +(isLeap && month > 1)) + day;
 
-  var days = daysInMonth.reduce(sumDaysOfMonths, +(isLeap && month > 1)) + day;
+  result += (days - 1) / daysInYear;
+  result = roundDecimal(result, constants.allowedMathImprecisionDecimals);
 
-  coord += (days - 1) / daysInYear;
-
-  coord = roundDecimal(coord, constants.allowedMathImprecisionDecimals);
-
-  return coord;
+  return result;
 }
-//Dates.getCoordinateFromYMD = getCoordinateFromYMD;
 
+// get date from coordinate in virtual space
 export function getYMDFromCoordinate(coord, MarkerCorrection) {
-  if (typeof MarkerCorrection === "undefined") {
-    MarkerCorrection = false;
-  }
-  var absCoord = Math.abs(coord),
-    floorCoord = Math.floor(coord),
-    sign = (coord === 0) ? 1 : coord / absCoord,
-    day = 0,
-    month = 0,
-    year = (coord >= 1) ? floorCoord : floorCoord - 1,
-    isLeap = isLeapYear(year),
-    daysInYear = isLeap ? 366 : 365,
-    daysFraction = sign * (absCoord - Math.abs(floorCoord));
+  if (typeof MarkerCorrection === 'undefined') MarkerCorrection = false;
+
+  const absCoord = Math.abs(coord);
+  const floorCoord = Math.floor(coord);
+  const sign = (coord === 0) ? 1 : coord / absCoord;
+
+  let day = 0;
+  let month = 0;
+  let year = (coord >= 1) ? floorCoord : floorCoord - 1;
+
+  const isLeap = isLeapYear(year);
+  const daysInYear = isLeap ? 366 : 365;
+  const daysFraction = sign * (absCoord - Math.abs(floorCoord));
 
   // NOTE: Using Math.round() here causes day to be rounded to 365(366)
-  //       in case of the last day in a year. Do not increment day in
-  //       in this case.
+  //       in case of the last day in a year. Do not increment day in in this case.
   day = Math.round(daysFraction * daysInYear);
-  if (MarkerCorrection)
-    day = Math.floor(daysFraction * daysInYear);
+  if (MarkerCorrection) day = Math.floor(daysFraction * daysInYear);
   day += +(day < daysInYear);
 
   while (day > daysInMonth[month] + (+(isLeap && month === 1))) {
     day -= daysInMonth[month];
-    if (isLeap && month === 1) {
-      day--;
-    }
-    month++;
+    if (isLeap && month === 1) day -= 1;
+    month += 1;
   }
 
-  return {
-    year: year,
-    month: month,
-    day: day
-  };
+  return { year, month, day };
 }
-//Dates.getYMDFromCoordinate = getYMDFromCoordinate;
 
-// convert decimal year to virtual coordinate
-// 9999 -> present day
-// TODO: currently in database 1 BCE = -1 in virtual coords, but on client side 1 BCE = 0 in virtual coords
-// decimalYear in database has to be equal to virtual coordinate?
+// convert decimal year to virtual coordinate, 9999 -> present day
+// NOTE: currently in database 1 BCE = -1 in virtual coords, but on client side 1 BCE = 0 in virtual coords
 export function getCoordinateFromDecimalYear(decimalYear) {
-  // get virtual coordinate of present day
-  var localPresent = getPresent();
-  var presentDate = getCoordinateFromYMD(localPresent.presentYear, localPresent.presentMonth, localPresent.presentDay);
+  const { presentYear, presentMonth, presentDay } = getPresent();
+  const presentDate = getCoordinateFromYMD(presentYear, presentMonth, presentDay);
 
-  return decimalYear === 9999 ? presentDate : (decimalYear < 0 ? decimalYear + 1 : decimalYear);
+  return decimalYear === 9999
+    ? presentDate
+    : (decimalYear < 0 ? decimalYear + 1 : decimalYear);
 }
-//Dates.getCoordinateFromDecimalYear = getCoordinateFromDecimalYear;
 
 // convert virtual coordinate to decimal year
 export function getDecimalYearFromCoordinate(coordinate) {
   // in database 1 BCE = -1, on client side 1 BCE = 0
   return coordinate < 1 ? --coordinate : coordinate;
 }
-//Dates.getDecimalYearFromCoordinate = getDecimalYearFromCoordinate;
 
 export function convertCoordinateToYear(coordinate) {
-  var year = {
-    year: coordinate,
-    regime: "CE"
-  };
-  var eps_const = 100000;
+  const year = { year: coordinate, regime: "CE" };
+  const eps_const = 100000;
+
   if (coordinate <= -999999999) {
     year.year = (year.year - 1) / (-1000000000);
     year.year = Math.round(year.year * eps_const) / eps_const;
@@ -134,7 +121,6 @@ export function convertCoordinateToYear(coordinate) {
     year.regime = 'Ka';
   } else if (coordinate < 1) {
     year.year = (year.year - 1) / (-1);
-
     // remove fraction part of year
     year.year = Math.ceil(year.year);
     year.regime = 'BCE';
@@ -143,70 +129,55 @@ export function convertCoordinateToYear(coordinate) {
     year.year = Math.floor(year.year);
   }
 
-  //if (year.regime === 'BCE') {
-  //    year.year += 2;
-  //   }
-  //if ((year.regime === 'CE') && (year.year === 0)) {
-  //    year.regime = 'BCE';
-  //    year.year = 1;
-  //   }
   return year;
 }
-//Dates.convertCoordinateToYear = convertCoordinateToYear;
 
 export function convertYearToCoordinate(year, regime) {
-  var coordinate = year;
+  let coordinate = year;
 
   switch (regime.toLowerCase()) {
-    case "ga":
+    case 'ga':
       coordinate = year * (-1000000000) + 1;
       break;
-    case "ma":
+    case 'ma':
       coordinate = year * (-1000000) + 1;
       break;
-    case "ka":
+    case 'ka':
       coordinate = year * (-1000) + 1;
       break;
-    case "bce":
+    case 'bce':
       coordinate = year * (-1) + 1;
-
       break;
   }
 
   return coordinate;
 }
-//Dates.convertYearToCoordinate = convertYearToCoordinate;
 
-var present = undefined;
 export function getPresent() {
-  if (!present) {
-    present = new Date();
+  const now = new Date();
 
-    present.presentDay = present.getUTCDate();
-    present.presentMonth = present.getUTCMonth();
-    present.presentYear = present.getUTCFullYear();
-  }
-  return present;
+  now.presentDay = now.getUTCDate();
+  now.presentMonth = now.getUTCMonth();
+  now.presentYear = now.getUTCFullYear();
+
+  return now;
 }
-//Dates.getPresent = getPresent;
 
 export function isLeapYear(year) {
-  return (year >= 1582 && (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)));
+  return (year >= firstLeapYear && (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)));
 }
-//Dates.isLeapYear = isLeapYear;
 
 export function numberofLeap(year) {
-  var startLeap = 1582;
-  if (year < startLeap)
-    return 0;
-  var years1 = Math.floor(year / 4) - Math.floor(startLeap / 4);
-  years1 -= Math.floor(year / 100) - Math.floor(startLeap / 100);
-  years1 += Math.floor(year / 400) - Math.floor(startLeap / 400);
-  if (isLeapYear(year))
-    years1--;
+  if (year < firstLeapYear) return 0;
+
+  let years1 = Math.floor(year / 4) - Math.floor(firstLeapYear / 4);
+  years1 -= Math.floor(year / 100) - Math.floor(firstLeapYear / 100);
+  years1 += Math.floor(year / 400) - Math.floor(firstLeapYear / 400);
+
+  if (isLeapYear(year)) years1 -= 1;
+
   return years1;
 }
-//Dates.numberofLeap = numberofLeap;
 
 export function roundDecimal(decimal, precision) {
   return Math.round(decimal * Math.pow(10, precision)) / Math.pow(10, precision);
