@@ -56,10 +56,6 @@ export default class Common {
     // Initial Content contains the identifier (e.g. ID or Title) of the content that should be loaded initially.
     var initialContent = null;
 
-    /*Animation tooltip parameter*/
-    var animationTooltipRunning = null;
-    var tooltipMode = 'default';
-
     var width;
 
     //var initialize = initialize;
@@ -155,23 +151,6 @@ export default class Common {
 
   showFooter() {
     $('#footerBack').show('clip', {}, 'slow');
-  }
-
-  stopAnimationTooltip() {
-    if (this.animationTooltipRunning != null) {
-      $('.bubbleInfo').stop();
-      $('.bubbleInfo').css('opacity', '0.9');
-      $('.bubbleInfo').css('filter', 'alpha(opacity=90)');
-      $('.bubbleInfo').css('-moz-opacity', '0.9');
-
-      this.animationTooltipRunning = null;
-
-      //tooltipMode = "default"; //default
-      //tooltipIsShown = false;
-      $('.bubbleInfo').attr('id', 'defaultBox');
-
-      $('.bubbleInfo').hide();
-    }
   }
 
   // Compares 2 visibles. Returns true if they are equal with an allowable imprecision

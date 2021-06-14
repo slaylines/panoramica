@@ -4,8 +4,7 @@ window.jQuery = $;
 require('jquery-ui');
 
 import Axis from './axis';
-
-// import initWidgetVC from './vc';
+import VirtualCanvas from './vc';
 
 $(document).ready(() => {
   const $axis = $('#axis');
@@ -15,7 +14,7 @@ $(document).ready(() => {
 
   axis.update(range);
 
-  // const vc = $('#vc');
-  // initWidgetVC();
-  // vc.virtualCanvas();
+  const vc = $('#vc');
+  VirtualCanvas();
+  vc.virtualCanvas();
 });

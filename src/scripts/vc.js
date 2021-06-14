@@ -2,688 +2,33 @@ const $ = require('jquery');
 window.jQuery = $;
 require('jquery-ui');
 
-
-//import CZ from './cz'
 import * as constants from './constants';
-import * as Viewport from './viewport'
-import { VCContent, CanvasRootElement } from './vccontent'
-import Common from './common'
-import Layout from './layout'
+import * as utils from './utils';
 
-/*  Defines a Virtual Canvas widget (based on jQuery ui).
-@remarks The widget renders different objects defined in a virtual space within a <div> element.
-The widget allows to update current visible region, i.e. perform panning and zooming.
+import * as Viewport from './viewport';
+import { CanvasRootElement } from './vccontent';
+import Layout from './layout';
 
-Technically, the widget uses a <canvas> element to render most types of objects; some of elements
-can be positioned using CSS on a top of the canvas.
-The widget is split into layers, each layer corresponds to a <div> within a root <div> element.
-Next <div> is rendered on the top of previous one.
+/*
+  Defines a Virtual Canvas widget (based on jQuery ui).
+  @remarks The widget renders different objects defined in a virtual space within a <div> element.
+  The widget allows to update current visible region, i.e. perform panning and zooming.
+
+  Technically, the widget uses a <canvas> element to render most types of objects; some of elements
+  can be positioned using CSS on a top of the canvas.
+
+  The widget is split into layers, each layer corresponds to a <div> within a root <div> element.
+  Next <div> is rendered on the top of previous one.
 */
 
-export default function initWidgetVC() {
-  $.widget("ui.virtualCanvas", {
-    /* Root element of the widget content.
-    Element of type CanvasItemsRoot.
-    */
-    _layersContent: undefined,
-    /* Array of jqueries to layer div elements
-    (saved to avoid building jqueries every time we need it).
-    */
-    _layers: [],
-    /* Constructs a widget
-     */
-    _create: function () {
-      var self = this;
-      self.element.addClass("virtualCanvas");
-      var size = self._getClientSize();
+export default function VirtualCanvas() {
+  $.widget('ui.virtualCanvas', {
+    // Root element of the widget content. Element of type CanvasItemsRoot.
+    layersContent: undefined,
 
-      this.lastEvent = null; // last mouse event
+    // Array layer div elements
+    layers: [],
 
-      this.canvasWidth = null; // width of canvas
-      this.canvasHeight = null; // height of canvas
-
-      this.requestNewFrame = false; // indicates whether new frame is required or not
-
-      self.cursorPositionChangedEvent = new $.Event("cursorPositionChanged");
-      self.breadCrumbsChangedEvent = $.Event("breadCrumbsChanged");
-      self.innerZoomConstraintChangedEvent = $.Event("innerZoomConstraintChanged");
-      self.currentlyHoveredInfodot = undefined;
-      self.breadCrumbs = [];
-      self.recentBreadCrumb = {
-        vcElement: {
-          title: "initObject"
-        }
-      };
-
-      self.cursorPosition = 0.0;
-
-      // elements that cover top, right, bottom & left space between corresponding root timeline's
-      // border and corresponding canvas edge
-      this.topCloak = $(".root-cloak-top");
-      this.rightCloak = $(".root-cloak-right");
-      this.bottomCloak = $(".root-cloak-bottom");
-      this.leftCloak = $(".root-cloak-left");
-
-      // indicates whether cloak should be shown or not
-      this.showCloak = false;
-
-      var layerDivs = self.element.children("div");
-      layerDivs.each(function (index) {
-        // make a layer from (div)
-        $(this)
-          .addClass("virtualCanvasLayerDiv unselectable")
-          .css("z-index", index * 3);
-
-        // creating canvas element
-        var layerCanvasJq = $("<canvas></canvas>")
-          .appendTo($(this))
-          .addClass("virtualCanvasLayerCanvas")
-          .css("z-index", index * 3 + 1);
-
-        // save jquery for this layer for further use
-        self._layers.push($(this));
-      });
-
-      // creating layers' content root element
-      this._layersContent = new CanvasRootElement(self, undefined, "__root__", -Infinity, -Infinity, Infinity, Infinity);
-
-      // default visible region
-      this.options.visible = new Viewport.VisibleRegion2d(0, 0, 1); // ...in virtual coordinates: centerX, centerY, scale.
-      this.updateViewport();
-
-      // start up the mouse handling
-      self.element.bind('mousemove.' + this.widgetName, function (e) {
-        self.mouseMove(e);
-      });
-      self.element.bind('mousedown.' + this.widgetName, function (e) {
-        switch (e.which) {
-          case 1:
-            self._mouseDown(e); //means that only left click will be interpreted
-            break;
-        }
-      });
-      self.element.bind('mouseup.' + this.widgetName, function (e) {
-        switch (e.which) {
-          case 1:
-            self._mouseUp(e);
-        }
-      });
-      self.element.bind('mouseleave.' + this.widgetName, function (e) {
-        self._mouseLeave(e);
-      });
-    },
-    /* Destroys a widget
-     */
-    destroy: function () {
-      this._destroy();
-    },
-    /* Handles mouse down event within the widget
-     */
-    /*_mouseDown: function (e) {
-    		var origin = Common.getXBrowserMouseOrigin(this.element, e);
-    		this.lastClickPosition = {
-    				x: origin.x,
-    				y: origin.y
-    		};
-
-    		//Bug (176751): Infodots/video. Mouseup event handling.
-    		//Chrome/Firefox solution
-    		$("iframe").css("pointer-events", "none");
-
-    		//IE solution
-    		$('#iframe_layer').css("display", "block").css("z-index", "99999");
-    },*/
-    /* Handles mouse up event within the widget
-     */
-    /*_mouseUp: function (e) {
-    		var viewport = this.getViewport();
-    		var origin = Common.getXBrowserMouseOrigin(this.element, e);
-    		var posv = viewport.pointScreenToVirtual(origin.x, origin.y);
-
-    		if (this.lastClickPosition && this.lastClickPosition.x == origin.x && this.lastClickPosition.y == origin.y)
-    				this._mouseClick(e);
-
-    		//Bug (176751): Infodots/video. Mouseup event handling.
-    		//Chrome/Firefox solution
-    		$("iframe").css("pointer-events", "auto");
-
-    		//IE solution
-    		$('#iframe_layer').css("display", "none");
-    },*/
-    /*
-    Handles mouseleave event within the widget
-    */
-    /*_mouseLeave: function (e) {
-    		// check if any content item or infodot or timeline are highlighted
-    		if (this.currentlyHoveredContentItem != null && this.currentlyHoveredContentItem.onmouseleave != null)
-    				this.currentlyHoveredContentItem.onmouseleave(e);
-    		if (this.currentlyHoveredInfodot != null && this.currentlyHoveredInfodot.onmouseleave != null)
-    				this.currentlyHoveredInfodot.onmouseleave(e);
-    		if (this.currentlyHoveredTimeline != null && this.currentlyHoveredTimeline.onmouseunhover != null)
-    				this.currentlyHoveredTimeline.onmouseunhover(null, e);
-
-    		// hide tooltip now
-    		Common.stopAnimationTooltip();
-
-    		// remove last mouse position from canvas to prevent unexpected highlight of canvas elements
-    		this.lastEvent = null;
-    },*/
-    /* Mouse click happens when mouse up happens at the same point as previous mouse down.
-    Returns true, if the event was handled.
-    */
-    /*_mouseClick: function (e) {
-    		var viewport = this.getViewport();
-    		var origin = Common.getXBrowserMouseOrigin(this.element, e);
-    		var posv = viewport.pointScreenToVirtual(origin.x, origin.y);
-
-    		// the function handle mouse click an a content item
-    		var _mouseClickNode = function (contentItem, pv) {
-    				var inside = contentItem.isInside(pv);
-    				if (!inside)
-    						return false;
-
-    				for (var i = 0; i < contentItem.children.length; i++) {
-    						var child = contentItem.children[i];
-    						if (_mouseClickNode(child, posv))
-    								return true;
-    				}
-
-    				// No one has handled the click. We try to handle it here.
-    				if (contentItem.reactsOnMouse && contentItem.onmouseclick) {
-    						return contentItem.onmouseclick(pv, e);
-    				}
-    				return false;
-    		};
-
-    		// Start handling the event from root element
-    		_mouseClickNode(this._layersContent, posv);
-    },*/
-    /*
-    getter of currentlyHoveredTimeline
-    */
-    getHoveredTimeline: function () {
-      return this.currentlyHoveredTimeline;
-    },
-    /*
-    getter of currentlyHoveredInfodot
-    */
-    getHoveredInfodot: function () {
-      return this.currentlyHoveredInfodot;
-    },
-    /*
-    Returns the time value that corresponds to the current cursor position
-    */
-    getCursorPosition: function () {
-      return this.cursorPosition;
-    },
-    /*
-    Sets the constraines applied by the infordot exploration
-    param e     (CanvasInfodot) an infodot that is used to calculate constraints
-    */
-    _setConstraintsByInfodotHover: function (e) {
-      var val;
-      if (e) {
-        var recentVp = this.getViewport();
-        val = e.outerRad * constants.infoDotZoomConstraint / recentVp.width;
-      } else
-        val = undefined;
-      this.RaiseInnerZoomConstraintChanged(val);
-    },
-    /*
-    Fires the event with a new inner zoom constrainted value
-    */
-    RaiseInnerZoomConstraintChanged: function (e) {
-      this.innerZoomConstraintChangedEvent.zoomValue = e;
-      this.element.trigger(this.innerZoomConstraintChangedEvent);
-    },
-    /*
-    Fires the event of cursor position changed
-    */
-    RaiseCursorChanged: function () {
-      this.cursorPositionChangedEvent.Time = this.cursorPosition;
-      this.element.trigger(this.cursorPositionChangedEvent);
-    },
-    /*
-    Updates tooltip position
-    */
-    updateTooltipPosition: function (posv) {
-      var scrPoint = this.viewport.pointVirtualToScreen(posv.x, posv.y);
-
-      var heigthOffset = 17;
-
-      var length, height;
-
-      var obj = null;
-
-      if (Common.tooltipMode == 'infodot')
-        obj = this.currentlyHoveredInfodot;
-      else if (Common.tooltipMode == 'timeline')
-        obj = this.currentlyHoveredTimeline;
-
-      if (obj == null)
-        return;
-
-      length = parseInt(scrPoint.x) + obj.panelWidth; // position of right edge of tooltip's panel
-      height = parseInt(scrPoint.y) + obj.panelHeight + heigthOffset; // position of bottom edge of tooltip's panel
-
-      // tooltip goes beyond right edge of canvas
-      if (length > this.canvasWidth)
-        scrPoint.x = this.canvasWidth - obj.panelWidth;
-
-      // tooltip goes beyond bottom edge of canvas
-      if (height > this.canvasHeight)
-        scrPoint.y = this.canvasHeight - obj.panelHeight - heigthOffset + 1;
-
-      // Update tooltip position.
-      $('.bubbleInfo').css({
-        position: "absolute",
-        top: scrPoint.y,
-        left: scrPoint.x
-      });
-    },
-    /* Handles mouse move event within the widget
-     */
-    mouseMove: function (e) {
-      var viewport = this.getViewport();
-      var origin = Common.getXBrowserMouseOrigin(this.element, e);
-      var posv = viewport.pointScreenToVirtual(origin.x, origin.y);
-
-      // triggers an event that handles current mouse position
-      if (!this.currentlyHoveredInfodot) {
-        this.cursorPosition = posv.x;
-        this.RaiseCursorChanged();
-      }
-
-      if (!this.currentlyHoveredTimeline) {
-        this.cursorPosition = posv.x;
-        this.RaiseCursorChanged();
-      }
-
-      var mouseInStack = [];
-
-      // the function handle mouse move event
-      var _mouseMoveNode = function (contentItem /*an element to handle mouse move*/ , forceOutside /*if true, we know that pv is outside of the contentItem*/ , pv /*clicked point in virtual coordinates*/ ) {
-        if (forceOutside) {
-          // and if previously mouse was inside content item, we should handle mouse leave:
-          if (contentItem.reactsOnMouse && contentItem.isMouseIn && contentItem.onmouseleave) {
-            contentItem.onmouseleave(pv, e);
-            contentItem.isMouseIn = false;
-          }
-        } else {
-          var inside = contentItem.isInside(pv);
-          forceOutside = !inside; // for further handle of event in children of this content item
-
-          // We should invoke mousemove, mouseenter, mouseleave handlers
-          if (contentItem.reactsOnMouse) {
-            if (inside) {
-              if (contentItem.isMouseIn) {
-                if (contentItem.onmousemove)
-                  contentItem.onmousemove(pv, e);
-                if (contentItem.onmousehover)
-                  mouseInStack.push(contentItem);
-              } else {
-                contentItem.isMouseIn = true;
-                if (contentItem.onmouseenter)
-                  contentItem.onmouseenter(pv, e);
-              }
-            } else {
-              if (contentItem.isMouseIn) {
-                contentItem.isMouseIn = false;
-                if (contentItem.onmouseleave)
-                  contentItem.onmouseleave(pv, e);
-              } else {
-                if (contentItem.onmousemove)
-                  contentItem.onmousemove(pv, e);
-              }
-            }
-          }
-          contentItem.isMouseIn = inside; // save that mouse was inside this contentItem
-        }
-
-        for (var i = 0; i < contentItem.children.length; i++) {
-          var child = contentItem.children[i];
-          if (!forceOutside || child.isMouseIn)
-            _mouseMoveNode(child, forceOutside, pv); // call mouseleave or do nothing within that branch of the tree.
-        }
-      };
-
-      // Start handling the event from root element
-      _mouseMoveNode(this._layersContent, false, posv);
-
-      // Notifying the deepest timeline which has mouse hover
-      if (mouseInStack.length == 0) {
-        if (this.hovered && this.hovered.onmouseunhover) {
-          this.hovered.onmouseunhover(posv, e);
-          this.hovered = null;
-        }
-      }
-      for (var n = mouseInStack.length; --n >= 0;) {
-        if (mouseInStack[n].onmousehover) {
-          mouseInStack[n].onmousehover(posv, e);
-          if (this.hovered && this.hovered != mouseInStack[n] && this.hovered.onmouseunhover)
-            // dont unhover timeline if its child infodot is hovered
-            if (!this.currentlyHoveredInfodot || (this.currentlyHoveredInfodot && this.currentlyHoveredInfodot.parent && this.currentlyHoveredInfodot.parent != this.hovered))
-              this.hovered.onmouseunhover(posv, e);
-          if (this.currentlyHoveredContentItem)
-            this.hovered = this.currentlyHoveredContentItem;
-          else
-            this.hovered = mouseInStack[n];
-          break;
-        }
-      }
-
-      // update tooltip for currently tooltiped infodot|t if tooltip is enabled for this infodot|timeline
-      if ((this.currentlyHoveredInfodot != null && this.currentlyHoveredInfodot.tooltipEnabled == true) || (this.currentlyHoveredTimeline != null && this.currentlyHoveredTimeline.tooltipEnabled == true && Common.tooltipMode != "infodot")) {
-        var obj = null;
-
-        if (Common.tooltipMode == 'infodot')
-          obj = this.currentlyHoveredInfodot;
-        else if (Common.tooltipMode == 'timeline')
-          obj = this.currentlyHoveredTimeline;
-
-        if (obj != null) {
-          // show tooltip if it is not shown yet
-          if (obj.tooltipIsShown == false) {
-            obj.tooltipIsShown = true;
-            Common.animationTooltipRunning = $('.bubbleInfo').fadeIn();
-          }
-        }
-
-        // update position of tooltip
-        this.updateTooltipPosition(posv);
-      }
-
-      // last mouse move event
-      this.lastEvent = e;
-    },
-    // Returns last mouse move event
-    getLastEvent: function () {
-      return this.lastEvent;
-    },
-    // Returns root of the element tree.
-    getLayerContent: function () {
-      return this._layersContent;
-    },
-    // Recursively finds and returns an element with given id.
-    // If not found, returns null.
-    findElement: function (id) {
-      var rfind = function (el, id) {
-        if (el.id === id)
-          return el;
-        if (!el.children)
-          return null;
-        var n = el.children.length;
-        for (var i = 0; i < n; i++) {
-          var child = el.children[i];
-          if (child.id === id)
-            return child;
-        }
-        for (var i = 0; i < n; i++) {
-          var child = el.children[i];
-          var res = rfind(child, id);
-          if (res)
-            return res;
-        }
-        return null;
-      };
-
-      return rfind(this._layersContent, id);
-    },
-    // Recursively iterates over all elements.
-    forEachElement: function (callback) {
-      var rfind = function (el, callback) {
-        callback(el);
-        if (!el.children)
-          return;
-        for (var i = 0; i < el.children.length; i++) {
-          var child = el.children[i];
-          var res = rfind(child, callback);
-        }
-      };
-
-      return rfind(this._layersContent, callback);
-    },
-    // Destroys the widget.
-    _destroy: function () {
-      this.element.removeClass("virtualCanvas");
-      this.element.children(".virtualCanvasLayerDiv").each(function (index) {
-        $(this).removeClass("virtualCanvasLayerDiv").removeClass("unselectable");
-        $(this).remove(".virtualCanvasLayerCanvas");
-      });
-      this.element.unbind('.' + this.widgetName);
-      this._layers = undefined;
-      this._layersContent = undefined;
-      return this;
-    },
-    /* Produces {Left,Right,Top,Bottom} object which corresponds to visible region in virtual space, using current viewport.
-     */
-    _visibleToViewBox: function (visible) {
-      var view = this.getViewport();
-      var w = view.widthScreenToVirtual(view.width);
-      var h = view.heightScreenToVirtual(view.height);
-      var x = visible.centerX - w / 2;
-      var y = visible.centerY - h / 2;
-      return {
-        Left: x,
-        Right: x + w,
-        Top: y,
-        Bottom: y + h
-      };
-    },
-    /* Updates and renders a visible region in virtual space that corresponds to a physical window.
-    @param newVisible   (VisibleRegion2d) New visible region.
-    @remarks Rebuilds the current viewport.
-    */
-    setVisible: function (newVisible, isInAnimation) {
-      delete this.viewport; // invalidating old viewport
-      this.options.visible = newVisible; // setting new visible region
-      this.isInAnimation = isInAnimation && isInAnimation.isActive;
-
-      //console.log("newvs",newVisible);
-      // rendering canvas (we should update the image because of new visible region)
-      var viewbox_v = this._visibleToViewBox(newVisible);
-
-      //console.log(viewbox_v);
-      var viewport = this.getViewport();
-      this._renderCanvas(this._layersContent, viewbox_v, viewport);
-    },
-    /* Update viewport's physical width and height in correspondence with the <div> element.
-    @remarks The method should be called when the <div> element, which hosts the virtual canvas, resizes.
-    It sets width and height attributes of layers' <div> and <canvas> to width and height of the widget's <div>, and
-    then updates visible region and (render)s the content.
-    */
-    updateViewport: function () {
-      // updating width and height of layers' <canvas>-es in accordance with actual size of widget's <div>.
-      var size = this._getClientSize();
-      var n = this._layers.length;
-      for (var i = 0; i < n; i++) {
-        var layer = this._layers[i];
-        layer.width(size.width).height(size.height);
-        var canvas = layer.children(".virtualCanvasLayerCanvas").first()[0];
-        if (canvas) {
-          canvas.width = size.width;
-          canvas.height = size.height;
-        }
-      }
-
-      // update canvas width and height
-      //console.log(Common);
-      //this.canvasWidth = Common.vc.width();
-      //this.canvasHeight = Common.vc.height();
-
-      this.canvasWidth = 816;
-      this.canvasHeight = 550;
-
-      this.setVisible(this.options.visible);
-    },
-    /* Produces {width, height} object from actual width and height of widget's <div> (in pixels).
-     */
-    _getClientSize: function () {
-      return {
-        width: this.element[0].clientWidth,
-        height: this.element[0].clientHeight
-      };
-    },
-    /* Gets current viewport.
-    @remarks The widget caches viewport as this.viewport property and rebuilds it only when it is invalidated, i.e. this.viewport=undefined.
-    Viewport is currently invalidated by setVisible and updateViewport methods.
-    */
-    getViewport: function () {
-      if (!this.viewport) {
-        var size = this._getClientSize();
-        var o = this.options;
-        this.viewport = new Viewport.Viewport2d(o.aspectRatio, size.width, size.height, o.visible);
-      }
-      return this.viewport;
-    },
-    /* Renders elements tree on all layers' canvases.
-    @param elementsRoot     (CanvasItemsRoot) Root of widget's elements tree
-    @param visibleBox_v     ({Left,Right,Top,Bottom}) describes visible region in virtual space
-    @param viewport         (Viewport2d) current viewport
-    @todo                   Possible optimization is to render only actually updated layers.
-    */
-    _renderCanvas: function (elementsRoot, visibleBox_v, viewport) {
-      var n = this._layers.length;
-      if (n == 0)
-        return;
-
-      // first we get 2d contexts for each layers' canvas:
-      var contexts = {};
-      for (var i = 0; i < n; i++) {
-        var layer = this._layers[i];
-        var canvas = layer.children(".virtualCanvasLayerCanvas").first()[0];
-        var ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, viewport.width, viewport.height);
-        var layerid = layer[0].id;
-        contexts[layerid] = ctx;
-      }
-
-      // rendering the tree recursively
-      elementsRoot.render(contexts, visibleBox_v, viewport);
-
-      // update position of cloak for space outside root timeline
-      this.updateCloakPosition(viewport);
-    },
-    /* Renders the virtual canvas content.
-     */
-    invalidate: function () {
-      var viewbox_v = this._visibleToViewBox(this.options.visible);
-      var viewport = this.getViewport();
-
-      this._renderCanvas(this._layersContent, viewbox_v, viewport);
-    },
-    /*
-    Fires the trigger that currently observed (the visible region is inside this timeline) timeline is changed
-    */
-    breadCrumbsChanged: function () {
-      this.breadCrumbsChangedEvent.breadCrumbs = this.breadCrumbs;
-      this.element.trigger(this.breadCrumbsChangedEvent);
-    },
-    /* If virtual canvas is during animation now, the method does nothing;
-    otherwise, it sets the timeout to invalidate the image.
-    */
-    requestInvalidate: function () {
-      this.requestNewFrame = false;
-
-      // update parameters of animating elements and require new frame if needed
-      if (Layout.animatingElements.length != 0) {
-        for (var id in Layout.animatingElements)
-          if (Layout.animatingElements[id].animation && Layout.animatingElements[id].animation.isAnimating) {
-            Layout.animatingElements[id].calculateNewFrame();
-            this.requestNewFrame = true;
-          }
-      }
-
-      if (this.isInAnimation)
-        return;
-
-      this.isInAnimation = true;
-      var self = this;
-      setTimeout(function () {
-        self.isInAnimation = false;
-        self.invalidate();
-
-        if (self.requestNewFrame)
-          self.requestInvalidate();
-      }, 1000.0 / constants.targetFps); // 1/targetFps sec (targetFps is defined in a settings.js)
-    },
-    /*
-    Finds the LCA(Lowest Common Ancestor) timeline which contains wnd
-    */
-    _findLca: function (tl, wnd) {
-      for (var i = 0; i < tl.children.length; i++) {
-        if (tl.children[i].type === 'timeline' && tl.children[i].contains(wnd)) {
-          return this._findLca(tl.children[i], wnd);
-        }
-      }
-      return tl;
-    },
-    findLca: function (wnd) {
-      var cosmosTimeline = this._layersContent.children[0];
-
-      var eps = 1;
-      var cosmosLeft = cosmosTimeline.x + eps;
-      var cosmosRight = cosmosTimeline.x + cosmosTimeline.width - eps;
-      var cosmosTop = cosmosTimeline.y + eps;
-      var cosmosBottom = cosmosTimeline.y + cosmosTimeline.height - eps;
-
-      wnd.left = Math.max(cosmosLeft, Math.min(cosmosRight, wnd.x));
-      wnd.right = Math.max(cosmosLeft, Math.min(cosmosRight, wnd.x + wnd.width));
-      wnd.top = Math.max(cosmosTop, Math.min(cosmosBottom, wnd.y));
-      wnd.bottom = Math.max(cosmosTop, Math.min(cosmosBottom, wnd.y + wnd.height));
-
-      wnd.x = wnd.left;
-      wnd.y = wnd.top;
-      wnd.width = Math.max(0, wnd.right - wnd.left);
-      wnd.height = Math.max(0, wnd.bottom - wnd.top);
-
-      return this._findLca(cosmosTimeline, wnd);
-    },
-    /*
-    Checks if we have all the data to render wnd at scale
-    */
-    _inBuffer: function (tl, wnd, scale) {
-      if (tl.intersects(wnd) && tl.isVisibleOnScreen(scale)) {
-        if (!tl.isBuffered) {
-          return false;
-        } else {
-          /*
-          for (var i = 0; i < tl.children.length; i++) {
-          if (tl.children[i].type === 'infodot')
-          if (!tl.children[i].isBuffered)
-          return false;
-          }
-          */
-          var b = true;
-          for (var i = 0; i < tl.children.length; i++) {
-            if (tl.children[i].type === 'timeline')
-              b = b && this._inBuffer(tl.children[i], wnd, scale);
-          }
-          return b;
-        }
-      }
-      return true;
-    },
-    inBuffer: function (wnd, scale) {
-      var cosmosTimeline = this._layersContent.children[0];
-
-      var cosmosLeft = cosmosTimeline.x;
-      var cosmosRight = cosmosTimeline.x + cosmosTimeline.width;
-      var cosmosTop = cosmosTimeline.y;
-      var cosmosBottom = cosmosTimeline.y + cosmosTimeline.height;
-
-      wnd.left = Math.max(cosmosLeft, Math.min(cosmosRight, wnd.x));
-      wnd.right = Math.max(cosmosLeft, Math.min(cosmosRight, wnd.x + wnd.width));
-      wnd.top = Math.max(cosmosTop, Math.min(cosmosBottom, wnd.y));
-      wnd.bottom = Math.max(cosmosTop, Math.min(cosmosBottom, wnd.y + wnd.height));
-
-      wnd.x = wnd.left;
-      wnd.y = wnd.top;
-      wnd.width = Math.max(0, wnd.right - wnd.left);
-      wnd.height = Math.max(0, wnd.bottom - wnd.top);
-
-      return this._inBuffer(cosmosTimeline, wnd, scale);
-    },
     options: {
       aspectRatio: 1,
       visible: {
@@ -692,69 +37,614 @@ export default function initWidgetVC() {
         scale: 1
       }
     },
-    /**
-     * Shows top, right, bottom & left cloaks that hide empty space between root timeline's borders and
-     * canvas edges.
-     */
+
+    _create: function () {
+      this.element.addClass('virtualCanvas');
+
+      const size = this.getClientSize();
+
+      this.lastEvent = null;
+
+      this.canvasWidth = null;
+      this.canvasHeight = null;
+
+      this.requestNewFrame = false;
+
+      this.animationTooltipRunning = null;
+      this.tooltipMode = 'default';
+
+      this.cursorPositionChangedEvent = $.Event('cursorPositionChanged');
+      this.breadCrumbsChangedEvent = $.Event('breadCrumbsChanged');
+      this.innerZoomConstraintChangedEvent = $.Event('innerZoomConstraintChanged');
+
+      this.currentlyHoveredInfodot = undefined;
+      this.breadCrumbs = [];
+      this.recentBreadCrumb = {
+        vcElement: { title: 'initObject' },
+      };
+
+      this.cursorPosition = 0.0;
+
+      this.topCloak = $('.root-cloak-top');
+      this.rightCloak = $('.root-cloak-right');
+      this.bottomCloak = $('.root-cloak-bottom');
+      this.leftCloak = $('.root-cloak-left');
+
+      this.showCloak = false;
+
+      this.element.children('div').each(index => {
+        $(this)
+          .addClass('virtualCanvasLayerDiv unselectable')
+          .css('z-index', index * 3);
+
+        const layerCanvasJq = $('<canvas></canvas>')
+          .appendTo($(this.element))
+          .addClass('virtualCanvasLayerCanvas')
+          .css('z-index', index * 3 + 1);
+
+        this.layers.push($(this.element));
+      });
+
+      this.layersContent = new CanvasRootElement(
+        self, undefined, '__root__',
+        -Infinity, -Infinity, Infinity, Infinity
+      );
+
+      this.options.visible = new Viewport.VisibleRegion2d(0, 0, 1);
+      this.updateViewport();
+
+      this.element.bind(`mousemove.${this.widgetName}`, event => {
+        this.mouseMove(event);
+      });
+
+      this.element.bind(`mousedown.${this.widgetName}`, event => {
+        if (event.which === 1) { this.mouseDown(event); }
+      });
+
+      this.element.bind(`mouseup.${this.widgetName}`, event => {
+        if (event.which === 1) { this.mouseUp(event); }
+      });
+
+      this.element.bind(`mouseleave.${this.widgetName}`, event => {
+        this.mouseLeave(event);
+      });
+    },
+
+    _destroy: function () {
+      this.element.removeClass('virtualCanvas');
+      this.element.children('.virtualCanvasLayerDiv').each((index) => {
+        $(this).removeClass(['virtualCanvasLayerDiv', 'unselectable']);
+        $(this).remove('.virtualCanvasLayerCanvas');
+      });
+      this.element.unbind(`.${this.widgetName}`);
+      this.layers = undefined;
+      this.layersContent = undefined;
+
+      return this;
+    },
+
+    mouseDown: function (event) {
+      const origin = utils.getXBrowserMouseOrigin(this.element, event);
+
+      this.lastClickPosition = { x: origin.x, y: origin.y };
+
+      $('iframe').css('pointer-events', 'none');
+      $('#iframe_layer').css('display', 'block').css('z-index', '99999');
+    },
+
+    mouseUp: function (event) {
+      const viewport = this.getViewport();
+      const origin = utils.getXBrowserMouseOrigin(this.element, event);
+
+      if (this.lastClickPosition && this.lastClickPosition.x === origin.x && this.lastClickPosition.y === origin.y) {
+        this.mouseClick(event);
+      }
+
+      $('iframe').css('pointer-events', 'auto');
+      $('#iframe_layer').css('display', 'none');
+    },
+
+    mouseLeave: function (event) {
+      if (this.currentlyHoveredContentItem && this.currentlyHoveredContentItem.onmouseleave)
+        this.currentlyHoveredContentItem.onmouseleave(event);
+
+      if (this.currentlyHoveredInfodot && this.currentlyHoveredInfodot.onmouseleave)
+        this.currentlyHoveredInfodot.onmouseleave(event);
+
+      if (this.currentlyHoveredTimeline && this.currentlyHoveredTimeline.onmouseunhover)
+        this.currentlyHoveredTimeline.onmouseunhover(null, event);
+
+      this.lastEvent = null;
+    },
+
+    mouseClick: function (event) {
+      const viewport = this.getViewport();
+      const origin = utils.getXBrowserMouseOrigin(this.element, event);
+      const point = viewport.pointScreenToVirtual(origin.x, origin.y);
+
+      const mouseClickNode = (contentItem, pv) => {
+        const inside = contentItem.isInside(pv);
+
+        if (!inside) return false;
+
+        for (var i = 0; i < contentItem.children.length; i++) {
+          const child = contentItem.children[i];
+          if (mouseClickNode(child, point)) return true;
+        }
+
+        if (contentItem.reactsOnMouse && contentItem.onmouseclick) {
+          return contentItem.onmouseclick(pv, event);
+        }
+
+        return false;
+      };
+
+      mouseClickNode(this.layersContent, point);
+    },
+
+    getHoveredTimeline: function () { return this.currentlyHoveredTimeline; },
+    getHoveredInfodot: function () { return this.currentlyHoveredInfodot; },
+    getCursorPosition: function () { return this.cursorPosition; },
+
+    setConstraintsByInfodotHover: function (infodot) {
+      const recentVP = this.getViewport();
+      const value = infodot
+        ? infodot.outerRad * constants.infoDotZoomConstraint / recentVP.width
+        : null;
+
+      this.raiseInnerZoomConstraintChanged(value);
+    },
+
+    raiseInnerZoomConstraintChanged: function (zoom) {
+      this.innerZoomConstraintChangedEvent.zoomValue = zoom;
+      this.element.trigger(this.innerZoomConstraintChangedEvent);
+    },
+
+    raiseCursorChanged: function () {
+      this.cursorPositionChangedEvent.Time = this.cursorPosition;
+      this.element.trigger(this.cursorPositionChangedEvent);
+    },
+
+    updateTooltipPosition: function (position) {
+      const screenPoint = this.viewport.pointVirtualToScreen(position.x, position.y);
+      const heigthOffset = 17;
+
+      const obj = null;
+
+      if (this.tooltipMode == 'infodot') obj = this.currentlyHoveredInfodot;
+      else if (this.tooltipMode == 'timeline') obj = this.currentlyHoveredTimeline;
+
+      if (!obj) return;
+
+      const width = parseInt(screenPoint.x) + obj.panelWidth; // position of right edge of tooltip's panel
+      const height = parseInt(screenPoint.y) + obj.panelHeight + heigthOffset; // position of bottom edge of tooltip's panel
+
+      // tooltip goes beyond right edge of canvas
+      if (width > this.canvasWidth) {
+        screenPoint.x = this.canvasWidth - obj.panelWidth;
+      }
+
+      // tooltip goes beyond bottom edge of canvas
+      if (height > this.canvasHeight) {
+        screenPoint.y = this.canvasHeight - obj.panelHeight - heigthOffset + 1;
+      }
+
+      // Update tooltip position.
+      $('.bubbleInfo').css({
+        position: 'absolute',
+        top: screenPoint.y,
+        left: screenPoint.x
+      });
+    },
+
+    mouseMove: function (event) {
+      const viewport = this.getViewport();
+      const origin = utils.getXBrowserMouseOrigin(this.element, event);
+      const position = viewport.pointScreenToVirtual(origin.x, origin.y);
+
+      // triggers an event that handles current mouse position
+      if (!this.currentlyHoveredInfodot || !this.currentlyHoveredTimeline) {
+        this.cursorPosition = position.x;
+        this.raiseCursorChanged();
+      }
+
+      const mouseInStack = [];
+
+      const mouseMoveNode = (contentItem, forceOutside, pointVS) => {
+        // leave if outside and previously mouse was inside content item
+        if (forceOutside && contentItem.reactsOnMouse && contentItem.isMouseIn && contentItem.onmouseleave) {
+          contentItem.onmouseleave(pointVS, event);
+          contentItem.isMouseIn = false;
+        } else {
+          const inside = contentItem.isInside(pointVS);
+
+          forceOutside = !inside;
+
+          if (contentItem.reactsOnMouse) {
+            if (inside) {
+              if (contentItem.isMouseIn) {
+                if (contentItem.onmousemove) contentItem.onmousemove(pointVS, event);
+                if (contentItem.onmousehover) mouseInStack.push(contentItem);
+              } else {
+                contentItem.isMouseIn = true;
+                if (contentItem.onmouseenter) contentItem.onmouseenter(pointVS, event);
+              }
+            } else {
+              if (contentItem.isMouseIn) {
+                contentItem.isMouseIn = false;
+                if (contentItem.onmouseleave) contentItem.onmouseleave(pointVS, event);
+              } else {
+                if (contentItem.onmousemove) contentItem.onmousemove(pointVS, event);
+              }
+            }
+          }
+          contentItem.isMouseIn = inside;
+        }
+
+        contentItem.children.forEach(child => {
+          if (!forceOutside || child.isMouseIn) {
+             // call mouseleave or do nothing within that branch of the tree.
+            mouseMoveNode(child, forceOutside, pointVS);
+          }
+        });
+      };
+
+      // Start handling the event from root element
+      mouseMoveNode(this.layersContent, false, position);
+
+      // Notifying the deepest timeline which has mouse hover
+      if (!mouseInStack.length && this.hovered && this.hovered.onmouseunhover) {
+        this.hovered.onmouseunhover(position, event);
+        this.hovered = null;
+      }
+
+      for (let n = mouseInStack.length; --n >= 0;) {
+        if (mouseInStack[n].onmousehover) {
+          mouseInStack[n].onmousehover(position, event);
+
+          if (this.hovered && this.hovered !== mouseInStack[n] && this.hovered.onmouseunhover)
+            if (!this.currentlyHoveredInfodot || (this.currentlyHoveredInfodot && this.currentlyHoveredInfodot.parent && this.currentlyHoveredInfodot.parent !== this.hovered))
+              this.hovered.onmouseunhover(position, event);
+          if (this.currentlyHoveredContentItem) this.hovered = this.currentlyHoveredContentItem;
+          else this.hovered = mouseInStack[n];
+          break;
+        }
+      }
+
+      // update tooltip for currently tooltiped infodot|t if tooltip is enabled for this infodot|timeline
+      if ((this.currentlyHoveredInfodot && this.currentlyHoveredInfodot.tooltipEnabled) || (this.currentlyHoveredTimeline && this.currentlyHoveredTimeline.tooltipEnabled && this.tooltipMode !== 'infodot')) {
+        let obj = null;
+
+        if (this.tooltipMode == 'infodot') obj = this.currentlyHoveredInfodot;
+        else if (this.tooltipMode == 'timeline') obj = this.currentlyHoveredTimeline;
+
+        if (obj && !obj.tooltipIsShown) {
+          obj.tooltipIsShown = true;
+          this.animationTooltipRunning = $('.bubbleInfo').fadeIn();
+        }
+
+        this.updateTooltipPosition(position);
+      }
+
+      this.lastEvent = event;
+    },
+
+    getLastEvent: function () { return this.lastEvent; },
+    getLayerContent: function () { return this.layersContent; },
+
+    // Recursively finds and returns an element with given id.
+    findElement: function (id) {
+      const find = (el, id) => {
+        if (el.id === id) return el;
+        if (!el.children) return null;
+
+        return el.children.find(c => (c.id === id || find(c, id)));
+      };
+
+      return find(this.layersContent, id);
+    },
+
+    // Recursively iterates over all elements.
+    forEachElement: function (callback) {
+      const find = (el, callback) => {
+        callback(el);
+
+        if (!el.children) return;
+
+        el.children.forEach(child => {
+          find(child, callback);
+        });
+      };
+
+      return find(this.layersContent, callback);
+    },
+
+    // Produces { Left,Right,Top,Bottom } object which corresponds to visible region in virtual space, using current viewport.
+    visibleToViewBox: function (visible) {
+      const view = this.getViewport();
+      const width = view.widthScreenToVirtual(view.width);
+      const height = view.heightScreenToVirtual(view.height);
+
+      const x = visible.centerX - width / 2;
+      const y = visible.centerY - height / 2;
+
+      return { Left: x, Right: x + width, Top: y, Bottom: y + height };
+    },
+
+    /*
+      Updates and renders a visible region in virtual space that corresponds to a physical window.
+      @param newVisible   (VisibleRegion2d) New visible region.
+      @remarks Rebuilds the current viewport.
+    */
+    setVisible: function (newVisible, isInAnimation) {
+      delete this.viewport;
+      this.options.visible = newVisible;
+      this.isInAnimation = isInAnimation && isInAnimation.isActive;
+
+      const visibleViewbox = this.visibleToViewBox(newVisible);
+      const viewport = this.getViewport();
+
+      this.renderCanvas(this.layersContent, visibleViewbox, viewport);
+    },
+
+    /*
+      Update viewport's physical width and height in correspondence with the <div> element.
+      @remarks The method should be called when the <div> element, which hosts the virtual canvas, resizes.
+      It sets width and height attributes of layers' <div> and <canvas> to width and height of the widget's <div>, and
+      then updates visible region and (render)s the content.
+    */
+    updateViewport: function () {
+      const { width, height } = this.getClientSize();
+      const { length } = this.layers;
+
+      this.layers.forEach(layer => {
+        layer.width(width).height(height);
+
+        const canvas = layer.children('.virtualCanvasLayerCanvas').first()[0];
+
+        if (canvas) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+      });
+
+      // TODO: magic numbers — update canvas width and height
+      //this.canvasWidth = Common.vc.width();
+      //this.canvasHeight = Common.vc.height();
+
+      this.canvasWidth = 816;
+      this.canvasHeight = 550;
+
+      this.setVisible(this.options.visible);
+    },
+
+    // Produces { width, height } object from actual width and height of widget's <div>
+    getClientSize: function () {
+      return {
+        width: this.element[0].clientWidth,
+        height: this.element[0].clientHeight,
+      };
+    },
+
+    /*
+      Gets current viewport.
+      @remarks The widget caches viewport as this.viewport property and rebuilds it only when it is invalidated, i.e. this.viewport=undefined.
+      Viewport is currently invalidated by setVisible and updateViewport methods.
+    */
+    getViewport: function () {
+      if (!this.viewport) {
+        const { width, height } = this.getClientSize();
+        const { aspectRatio, visible } = this.options;
+
+        this.viewport = new Viewport.Viewport2d(aspectRatio, width, height, visible);
+      }
+
+      return this.viewport;
+    },
+
+    /*
+      Renders elements tree on all layers' canvases.
+      @param elementsRoot     (CanvasItemsRoot) Root of widget's elements tree
+      @param visibleBox       ({Left,Right,Top,Bottom}) describes visible region in virtual space
+      @param viewport         (Viewport2d) current viewport
+    */
+    renderCanvas: function (elementsRoot, visibleBox, viewport) {
+      if (!this.layers.length) return;
+
+      const contexts = this.layers.reduce((res, layer) => {
+        const canvas = layer.children('.virtualCanvasLayerCanvas').first()[0];
+        const ctx = canvas.getContext('2d');
+
+        ctx.clearRect(0, 0, viewport.width, viewport.height);
+        res[layer[0].id] = ctx;
+
+        return res;
+      }, {});
+
+      elementsRoot.render(contexts, visibleBox, viewport);
+
+      this.updateCloakPosition(viewport);
+    },
+
+    // Renders the virtual canvas content.
+    invalidate: function () {
+      const viewbox = this.visibleToViewBox(this.options.visible);
+      const viewport = this.getViewport();
+
+      this.renderCanvas(this.layersContent, viewbox, viewport);
+    },
+
+    // Fires the trigger that currently observed (the visible region is inside this timeline) timeline is changed
+    breadCrumbsChanged: function () {
+      this.breadCrumbsChangedEvent.breadCrumbs = this.breadCrumbs;
+      this.element.trigger(this.breadCrumbsChangedEvent);
+    },
+
+    // If virtual canvas is during animation now, the method does nothing;
+    // otherwise, it sets the timeout to invalidate the image.
+    requestInvalidate: function () {
+      this.requestNewFrame = false;
+
+      // update parameters of animating elements and require new frame if needed
+      if (!Layout.animatingElements.length) {
+        for (let id in Layout.animatingElements)
+          if (Layout.animatingElements[id].animation && Layout.animatingElements[id].animation.isAnimating) {
+            Layout.animatingElements[id].calculateNewFrame();
+            this.requestNewFrame = true;
+          }
+      }
+
+      if (this.isInAnimation) return;
+
+      this.isInAnimation = true;
+
+      setTimeout(() => {
+        this.isInAnimation = false;
+        this.invalidate();
+
+        if (this.requestNewFrame) this.requestInvalidate();
+      }, 1000 / constants.targetFps);
+    },
+
+    // Finds the LCA(Lowest Common Ancestor) timeline which contains wnd
+    findLca: function (wnd) {
+      const rootTimeline = this.layersContent.children[0];
+
+      const eps = 1;
+      const cosmosLeft = rootTimeline.x + eps;
+      const cosmosRight = rootTimeline.x + rootTimeline.width - eps;
+      const cosmosTop = rootTimeline.y + eps;
+      const cosmosBottom = rootTimeline.y + rootTimeline.height - eps;
+
+      wnd.left = Math.max(cosmosLeft, Math.min(cosmosRight, wnd.x));
+      wnd.right = Math.max(cosmosLeft, Math.min(cosmosRight, wnd.x + wnd.width));
+      wnd.top = Math.max(cosmosTop, Math.min(cosmosBottom, wnd.y));
+      wnd.bottom = Math.max(cosmosTop, Math.min(cosmosBottom, wnd.y + wnd.height));
+
+      wnd.x = wnd.left;
+      wnd.y = wnd.top;
+
+      wnd.width = Math.max(0, wnd.right - wnd.left);
+      wnd.height = Math.max(0, wnd.bottom - wnd.top);
+
+      const find = (tl, wnd) => {
+        for (let i = 0; i < tl.children.length; i++) {
+          if (tl.children[i].type === 'timeline' && tl.children[i].contains(wnd)) {
+            return find(tl.children[i], wnd);
+          }
+        }
+        return tl;
+      };
+
+      return find(rootTimeline, wnd);
+    },
+
+    // Checks if we have all the data to render wnd at scale
+    inBuffer: function (wnd, scale) {
+      const rootTimeline = this.layersContent.children[0];
+
+      const cosmosLeft = rootTimeline.x;
+      const cosmosRight = rootTimeline.x + rootTimeline.width;
+      const cosmosTop = rootTimeline.y;
+      const cosmosBottom = rootTimeline.y + rootTimeline.height;
+
+      wnd.left = Math.max(cosmosLeft, Math.min(cosmosRight, wnd.x));
+      wnd.right = Math.max(cosmosLeft, Math.min(cosmosRight, wnd.x + wnd.width));
+      wnd.top = Math.max(cosmosTop, Math.min(cosmosBottom, wnd.y));
+      wnd.bottom = Math.max(cosmosTop, Math.min(cosmosBottom, wnd.y + wnd.height));
+
+      wnd.x = wnd.left;
+      wnd.y = wnd.top;
+
+      wnd.width = Math.max(0, wnd.right - wnd.left);
+      wnd.height = Math.max(0, wnd.bottom - wnd.top);
+
+      const find = (tl, wnd, scale) => {
+        if (tl.intersects(wnd) && tl.isVisibleOnScreen(scale)) {
+          if (!tl.isBuffered) {
+            return false;
+          } else {
+            let b = true;
+
+            for (var i = 0; i < tl.children.length; i++) {
+              if (tl.children[i].type === 'timeline')
+                b = b && find(tl.children[i], wnd, scale);
+            }
+            return b;
+          }
+        }
+        return true;
+      };
+
+      return find(rootTimeline, wnd, scale);
+    },
+
+    // TODO: make one showHide method
+
+    // Shows top, right, bottom & left cloaks that hide empty space between root timeline's borders and canvas edges.
     cloakNonRootVirtualSpace: function () {
       this.showCloak = true;
-      var viewport = this.getViewport();
+
+      const viewport = this.getViewport();
 
       this.updateCloakPosition(viewport);
 
-      this.topCloak.addClass("visible");
-      this.rightCloak.addClass("visible");
-      this.bottomCloak.addClass("visible");
-      this.leftCloak.addClass("visible");
+      this.topCloak.addClass('visible');
+      this.rightCloak.addClass('visible');
+      this.bottomCloak.addClass('visible');
+      this.leftCloak.addClass('visible');
     },
-    /**
-     * Hides top, right, bottom & left cloaks that hide empty space between root timeline's borders and
-     * canvas edges.
-     */
+
+    // Hides top, right, bottom & left cloaks that hide empty space between root timeline's borders and canvas edges.
     showNonRootVirtualSpace: function () {
       this.showCloak = false;
 
-      this.topCloak.removeClass("visible");
-      this.rightCloak.removeClass("visible");
-      this.bottomCloak.removeClass("visible");
-      this.leftCloak.removeClass("visible");
+      this.topCloak.removeClass('visible');
+      this.rightCloak.removeClass('visible');
+      this.bottomCloak.removeClass('visible');
+      this.leftCloak.removeClass('visible');
     },
-    /**
-     * Updates width and height of top, right, bottom & left cloaks that hide empty space between root
-     * timeline's borders and canvas edges.
-     */
+
+    // Updates width and height of top, right, bottom & left cloaks that hide empty space between root timeline's borders and canvas edges.
     updateCloakPosition: function (viewport) {
-      if (!this.showCloak)
-        return;
+      if (!this.showCloak) return;
 
-      var rootTimeline = this._layersContent.children[0];
+      const rootTimeline = this.layersContent.children[0];
 
-      var top = rootTimeline.y;
-      var right = rootTimeline.x + rootTimeline.width;
-      var bottom = rootTimeline.y + rootTimeline.height;
-      var left = rootTimeline.x;
+      let top = rootTimeline.y;
+      let right = rootTimeline.x + rootTimeline.width;
+      let bottom = rootTimeline.y + rootTimeline.height;
+      let left = rootTimeline.x;
 
-      // calculate sizes of cloaks
       top = Math.max(0, viewport.pointVirtualToScreen(0, top).y);
       right = Math.max(0, viewport.pointVirtualToScreen(right, 0).x);
       bottom = Math.max(0, viewport.pointVirtualToScreen(0, bottom).y);
       left = Math.max(0, viewport.pointVirtualToScreen(left, 0).x);
 
-      // set width of left and right cloaks
-      this.rightCloak.css("width", Math.max(0, viewport.width - right) + "px");
-      this.leftCloak.css("width", left + "px");
+      this.rightCloak.css('width', `${Math.max(0, viewport.width - right)}px`);
+      this.leftCloak.css('width', `${left}px`);
 
-      // set height of top and bottom cloaks
-      this.bottomCloak.css("height", Math.max(0, viewport.height - bottom) + "px");
-      this.topCloak.css("height", top + "px");
+      this.topCloak.css('left', `${left}px`);
+      this.topCloak.css('right', `${Math.max(0, viewport.width - right)}px`);
+      this.topCloak.css('height', `${top}px`);
 
-      // prevent intersection of bottom & top cloaks with left & right cloaks
-      this.topCloak.css("left", left + "px");
-      this.topCloak.css("right", Math.max(0, viewport.width - right) + "px");
-      this.bottomCloak.css("left", left + "px");
-      this.bottomCloak.css("right", Math.max(0, viewport.width - right) + "px");
-    }
+      this.bottomCloak.css('left', `${left}px`);
+      this.bottomCloak.css('right', `${Math.max(0, viewport.width - right)}px`);
+      this.bottomCloak.css('height', `${Math.max(0, viewport.height - bottom)}px`);
+    },
+
+    stopAnimationTooltip: function () {
+      if (this.animationTooltipRunning != null) {
+        $('.bubbleInfo').stop();
+        $('.bubbleInfo').css('opacity', '0.9');
+        $('.bubbleInfo').css('filter', 'alpha(opacity=90)');
+        $('.bubbleInfo').css('-moz-opacity', '0.9');
+
+        this.animationTooltipRunning = null;
+
+        $('.bubbleInfo').attr('id', 'defaultBox');
+        $('.bubbleInfo').hide();
+      }
+    },
   });
-
-  //VirtualCanvas.initialize = initialize;
 }

@@ -1,12 +1,7 @@
 import $ from 'jquery';
 import * as constants from './constants';
 import * as dates from './dates';
-
-// NOTE: method from common.js
-const getXBrowserMouseOrigin = (element, event) => ({
-  x: event.pageX - element[0].offsetLeft,
-  y: event.pageY - element[0].offsetTop,
-});
+import * as utils from './utils';
 
 export default class Axis {
   constructor(container) {
@@ -147,7 +142,7 @@ export default class Axis {
   }
 
   mouseMove(e) {
-    const point = getXBrowserMouseOrigin(this.container, e);
+    const point = utils.getXBrowserMouseOrigin(this.container, e);
     const k = (this.range.max - this.range.min) / this.width;
     const time = this.range.max - k * (this.width - point.x);
 
