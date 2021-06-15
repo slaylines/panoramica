@@ -14,7 +14,8 @@ $(document).ready(() => {
 
   axis.update(range);
 
-  const vc = $('#vc');
+  const $vc = $('#vc');
+
   VirtualCanvas();
-  vc.virtualCanvas();
+  $vc.virtualCanvas();
 });

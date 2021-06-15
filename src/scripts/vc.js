@@ -5,7 +5,7 @@ require('jquery-ui');
 import * as constants from './constants';
 import * as utils from './utils';
 
-import * as Viewport from './viewport';
+import { VisibleRegion2d, Viewport2d } from './viewport';
 import { CanvasRootElement } from './vccontent';
 import Layout from './layout';
 
@@ -90,7 +90,7 @@ export default function VirtualCanvas() {
         -Infinity, -Infinity, Infinity, Infinity
       );
 
-      this.options.visible = new Viewport.VisibleRegion2d(0, 0, 1);
+      this.options.visible = new VisibleRegion2d(0, 0, 1);
       this.updateViewport();
 
       this.element.bind(`mousemove.${this.widgetName}`, event => {
@@ -436,7 +436,7 @@ export default function VirtualCanvas() {
         const { width, height } = this.getClientSize();
         const { aspectRatio, visible } = this.options;
 
-        this.viewport = new Viewport.Viewport2d(aspectRatio, width, height, visible);
+        this.viewport = new Viewport2d(aspectRatio, width, height, visible);
       }
 
       return this.viewport;

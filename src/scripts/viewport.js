@@ -1,5 +1,3 @@
-//import CZ from './cz';
-
 // Creates an instance of VisibleRegion.
 // @param centerX, centerY  (number)     center point of visible rectangle (in virtual coordinates)
 // @param scale             (number)     how many time units in a single screen pixel (time unit/pixel)
@@ -22,7 +20,6 @@ export class VisibleRegion2d {
 // Visible describes the same window in the virtual space.
 export class Viewport2d {
   constructor(aspectRatio, width, height, visible) {
-
     this.aspectRatio = aspectRatio;
     this.visible = visible;
     this.width = width;
@@ -89,6 +86,7 @@ export class Viewport2d {
       };
     };
   }
+
   // Converts pixels in h-units
   // @param wp    (number)    Amount of pixels
   // @returns amount of h-units

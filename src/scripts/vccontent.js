@@ -2,7 +2,6 @@ const $ = require('jquery');
 window.jQuery = $;
 require('jquery-ui');
 
-//import CZ from './cz';
 import * as constants from './constants';
 import * as dates from './dates';
 import Layout from './layout';
@@ -1288,7 +1287,6 @@ export class CanvasElement {
     this.render = function (ctx, visibleBox_v, viewport2d, size_p, opacity) {};
   }
 }
-//VCContent.CanvasElement = CanvasElement;
 
 /* A base class for elements those support different content for different zoom levels.
 @remarks
@@ -1438,72 +1436,66 @@ class CanvasDynamicLOD {
 */
 export class CanvasRootElement extends CanvasElement {
   constructor(vc, layerid, id, vx, vy, vw, vh) {
-    //this.base = CanvasElement;
-    //this.base(vc, layerid, id, vx, vy, vw, vh);
     super(vc, layerid, id, vx, vy, vw, vh);
+
     this.opacity = 0;
 
-    /* Overrides base function. Root element is visible when it has at least one child. */
+    // Overrides base function. Root element is visible when it has at least one child
     this.isVisible = function (visibleBox_v) {
-      return this.children.length != 0;
+      return this.children.length !== 0;
     };
 
-    /* Begins editing of the element tree.
-    @returns This element.
-    @remarks Call BeginEdit prior to modify an element tree. The EndEdit method must be called, when editing is to be completed.
-    The VirtualCanvas is invalidated on EndEdit only.
+    /*
+      Begins editing of the element tree.
+      @returns This element.
+      @remarks Call BeginEdit prior to modify an element tree. The EndEdit method must be called, when editing is to be completed.
+      The VirtualCanvas is invalidated on EndEdit only.
     */
     this.beginEdit = function () {
       return this;
     };
 
-    /* Ends editing of the element tree.
-    @param dontRender   (number) if zero (default value), invalidates and renders the virtual canvas content.
-    @returns This element.
-    @remarks Call BeginEdit prior to modify an element tree. The EndEdit method must be called, when editing is to be completed.
-    The VirtualCanvas is invalidated on EndEdit only, if dontRender is false.
+    /*
+      Ends editing of the element tree.
+      @param dontRender   (number) if zero (default value), invalidates and renders the virtual canvas content.
+      @returns This element.
+      @remarks Call BeginEdit prior to modify an element tree. The EndEdit method must be called, when editing is to be completed.
+      The VirtualCanvas is invalidated on EndEdit only, if dontRender is false.
     */
     this.endEdit = function (dontRender) {
-      if (!dontRender)
-        this.vc.invalidate();
+      if (!dontRender) this.vc.invalidate();
     };
 
-    /* Checks whether the given point (virtual) is inside the object
-    (should take into account the shape) */
+    // Checks whether the given point (virtual) is inside the object (should take into account the shape)
     this.isInside = function (point_v) {
       return true;
     };
 
-    /* Renders a CanvasElement recursively
-    @param contexts         (map<layerid,context2d>) Contexts for layers' canvases.
-    @param visibleBox_v     ({Left,Right,Top,Bottom}) describes visible region in the virtual space
-    @param viewport2d       (Viewport2d) current viewport
+    /*
+      Renders a CanvasElement recursively
+      @param contexts         (map<layerid,context2d>) Contexts for layers' canvases.
+      @param visibleBox_v     ({Left,Right,Top,Bottom}) describes visible region in the virtual space
+      @param viewport2d       (Viewport2d) current viewport
     */
     this.render = function (contexts, visibleBox_v, viewport2d) {
       this.vc.breadCrumbs = [];
-      if (!this.isVisible(visibleBox_v))
-        return;
-      var n = this.children.length;
-      for (var i = 0; i < n; i++) {
-        VCContent.render(this.children[i], contexts, visibleBox_v, viewport2d, 1.0);
-      }
 
-      if (this.vc.breadCrumbs.length > 0 && (this.vc.recentBreadCrumb == undefined || this.vc.breadCrumbs[vc.breadCrumbs.length - 1].vcElement.id != this.vc.recentBreadCrumb.vcElement.id)) {
+      if (!this.isVisible(visibleBox_v)) return;
+
+      this.children.forEach(child => {
+        VCContent.render(child, contexts, visibleBox_v, viewport2d, 1.0);
+      });
+
+      if (this.vc.breadCrumbs.length && (!this.vc.recentBreadCrumb || this.vc.breadCrumbs[vc.breadCrumbs.length - 1].vcElement.id !== this.vc.recentBreadCrumb.vcElement.id)) {
         this.vc.recentBreadCrumb = this.vc.breadCrumbs[vc.breadCrumbs.length - 1];
         this.vc.breadCrumbsChanged();
-      } else {
-        if (this.vc.breadCrumbs.length == 0 && this.vc.recentBreadCrumb != undefined) {
-          this.vc.recentBreadCrumb = undefined;
-          this.vc.breadCrumbsChanged();
-        }
+      } else if (!this.vc.breadCrumbs.length && this.vc.recentBreadCrumb) {
+        this.vc.recentBreadCrumb = undefined;
+        this.vc.breadCrumbsChanged();
       }
     };
-
-
-    //this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
-//VCContent.CanvasRootElement = CanvasRootElement;
 
 /*****************************************************************************************/
 /* Primitive elements                                                                    */
@@ -1649,7 +1641,6 @@ class CanvasRectangle {
     this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
-//VCContent.CanvasRectangle = CanvasRectangle;
 
 /*  A Timeline element that can be added to a VirtualCanvas (Rect + caption + bread crumbs tracing).
 @param layerid   (any type) id of the layer for this element
@@ -2697,7 +2688,6 @@ class CanvasDomItem {
     this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
-VCContent.CanvasDomItem = CanvasDomItem;
 
 /*Represents Text block with scroll*/
 /*  Represents an image on a virtual canvas.
