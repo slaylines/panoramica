@@ -1,99 +1,90 @@
-const $ = require('jquery');
-window.jQuery = $;
-require('jquery-ui');
+import $ from 'jquery';
+import { fromEvent, zip, merge } from 'rxjs';
+import { skip, map, flatMap, takeUntil } from 'rxjs/operators';
 
 import * as constants from './constants';
+import * as utils from './utils';
+
+// Gesture for performing Pan operation
+// Takes horizontal and vertical offset in screen coordinates
+const PanGesture = (xOffset, yOffset, src) => ({
+  Type: 'Pan',
+  Source: src,
+  xOffset: xOffset,
+  yOffset: yOffset,
+});
+
+// Gesture for perfoming Zoom operation
+// Takes zoom origin point in screen coordinates and scale value
+const ZoomGesture = (xOrigin, yOrigin, scaleFactor, src) => ({
+  Type: 'Zoom',
+  Source: src,
+  xOrigin: xOrigin,
+  yOrigin: yOrigin,
+  scaleFactor: scaleFactor,
+});
+
+// Gesture for performing Stop of all current transitions and starting to performing new
+const PinGesture = (src) => ({
+  Type: 'Pin',
+  Source: src,
+});
 
 export default class Gestures {
-  constructor() {
-    var gesturesDictionary = [];
-  }
-  //Gesture for performing Pan operation
-  //Take horizontal and vertical offset in screen coordinates
-  //@param src    Source of gesture stream. ["Mouse", "Touch"]
-  PanGesture(xOffset, yOffset, src) {
-    this.Type = "Pan";
-    this.Source = src;
-    this.xOffset = xOffset;
-    this.yOffset = yOffset;
-  }
-
-  //Gesture for perfoming Zoom operation
-  //Takes zoom origin point in screen coordinates and scale value
-  ZoomGesture(xOrigin, yOrigin, scaleFactor, src) {
-    this.Type = "Zoom";
-    this.Source = src;
-    this.xOrigin = xOrigin;
-    this.yOrigin = yOrigin;
-    this.scaleFactor = scaleFactor;
-  }
-
-  //Gesture for performing Stop of all
-  //current transitions and starting to performing new
-  PinGesture(src) {
-    this.Type = "Pin";
-    this.Source = src;
-  }
-
   /*****************************************
    * Gestures for non touch based devices   *
    * mousedown, mousemove, mouseup          *
    * xbrowserwheel                          *
    ******************************************/
-  //Subject that converts input mouse events into Pan gestures
+
+  // Subject that converts input mouse events into Pan gestures
   static createPanSubject(vc) {
-    var _doc = $(document);
+    const mouseDowns = fromEvent(vc, 'mousedown');
+    const mouseMoves = fromEvent(vc, 'mousemove');
+    const mouseUps = fromEvent($(document), 'mouseup');
 
-    var mouseDown = vc.toObservable("mousedown");
-    var mouseMove = vc.toObservable("mousemove");
-    var mouseUp = _doc.toObservable("mouseup");
-
-    var mouseMoves = mouseMove.Skip(1).Zip(mouseMove, function (left, right) {
-      return new PanGesture(left.clientX - right.clientX, left.clientY - right.clientY, "Mouse");
-    });
-
-    var stopPanning = mouseUp;
-
-    var mouseDrags = mouseDown.SelectMany(function (md) {
-      return mouseMoves.TakeUntil(stopPanning);
-    });
-
-    return mouseDrags;
+    return mouseDowns.pipe(flatMap(mouseDown =>
+      mouseMoves.pipe(
+        map(mouseMove =>
+          PanGesture(
+            mouseMove.clientX - mouseDown.clientX,
+            mouseMove.clientY - mouseDown.clientY,
+            'Mouse'
+          )
+        ),
+        takeUntil(mouseUps)
+      )
+    ));
   }
 
-  //Subject that converts input mouse events into Pin gestures
+  // Subject that converts input mouse events into Pin gestures
   static createPinSubject(vc) {
-    var mouseDown = vc.toObservable("mousedown");
+    const mouseDowns = fromEvent(vc, 'mousedown');
 
-    return mouseDown.Select(function (md) {
-      return new PinGesture("Mouse");
-    });
+    return mouseDowns.pipe(map((_) => PinGesture('Mouse')));
   }
 
-  //Subject that converts input mouse events into Zoom gestures
+  // Subject that converts input mouse events into Zoom gestures
   static createZoomSubject(vc) {
-    vc.mousewheel(function (event, delta, deltaX, deltaY) {
-      var xevent = $.Event("xbrowserwheel");
+    vc.bind('wheel', event => {
+      const xevent = $.Event('xbrowserwheel');
+      const delta = event.originalEvent.deltaY;
+
       xevent.delta = delta;
-      xevent.origin = CZ.Common.getXBrowserMouseOrigin(vc, event);
+      xevent.origin = utils.getXBrowserMouseOrigin(vc, event);
+
       vc.trigger(xevent);
     });
 
-    var mouseWheel = vc.toObservable("xbrowserwheel");
+    const mouseWheels = fromEvent(vc, 'xbrowserwheel');
+    const { zoomLevelFactor } = constants;
 
-    var mouseWheels = mouseWheel.Zip(mouseWheel, function (arg) {
-      return new ZoomGesture(arg.origin.x, arg.origin.y, arg.delta > 0 ? 1 / constants.zoomLevelFactor : 1 * constants.zoomLevelFactor, "Mouse");
-    });
-
-    var mousedblclick = vc.toObservable("dblclick");
-
-    var mousedblclicks = mousedblclick.Zip(mousedblclick, function (event) {
-      var origin = CZ.Common.getXBrowserMouseOrigin(vc, event);
-      return new ZoomGesture(origin.x, origin.y, 1.0 / constants.zoomLevelFactor, "Mouse");
-    });
-
-    //return mouseWheels.Merge(mousedblclicks); //disabling mouse double clicks, as it causes strange behavior in conjection with elliptical zooming on the clicked item.
-    return mouseWheels;
+    return mouseWheels.pipe(map((mouseWheel) => ZoomGesture(
+      mouseWheel.origin.x,
+      mouseWheel.origin.y,
+      mouseWheel.delta > 0 ? 1 / zoomLevelFactor : 1 * zoomLevelFactor,
+      'Mouse'
+    )));
   }
 
   /*********************************************************
@@ -101,161 +92,82 @@ export default class Gestures {
    * touchstart, touchmove, touchend, touchcancel           *
    * gesturestart, gesturechange, gestureend                *
    **********************************************************/
-  //Subject that converts input touch events into Pan gestures
+
+  // Subject that converts input touch events into Pan gestures
   static createTouchPanSubject(vc) {
-    var _doc = $(document);
+    const $doc = $(document);
 
-    var touchStart = vc.toObservable("touchstart");
-    var touchMove = vc.toObservable("touchmove");
-    var touchEnd = _doc.toObservable("touchend");
-    var touchCancel = _doc.toObservable("touchcancel");
+    const touchStart = vc.toObservable('touchstart');
+    const touchMove = vc.toObservable('touchmove');
+    const touchEnd = $doc.toObservable('touchend');
+    const touchCancel = $doc.toObservable('touchcancel');
 
-    var gestures = touchStart.SelectMany(function (o) {
-      return touchMove.TakeUntil(touchEnd.Merge(touchCancel)).Skip(1).Zip(touchMove, function (left, right) {
-        return {
-          "left": left.originalEvent,
-          "right": right.originalEvent
-        };
-      }).Where(function (g) {
-        return g.left.scale === g.right.scale;
-      }).Select(function (g) {
-        return new PanGesture(g.left.pageX - g.right.pageX, g.left.pageY - g.right.pageY, "Touch");
-      });
+    const gestures = touchStart.SelectMany(o => {
+      return touchMove
+        .TakeUntil(touchEnd.Merge(touchCancel))
+        .Skip(1)
+        .Zip(touchMove, (left, right) => ({
+          left: left.originalEvent,
+          right: right.originalEvent,
+        }))
+        .Where(g => g.left.scale === g.right.scale)
+        .Select(g => new PanGesture(
+          g.left.pageX - g.right.pageX,
+          g.left.pageY - g.right.pageY,
+          'Touch'
+        ));
     });
 
     return gestures;
   }
 
-  //Subject that converts input touch events into Pin gestures
+  // Subject that converts input touch events into Pin gestures
   static createTouchPinSubject(vc) {
-    var touchStart = vc.toObservable("touchstart");
+    const touchStart = vc.toObservable('touchstart');
 
-    return touchStart.Select(function (ts) {
-      return new PinGesture("Touch");
-    });
+    return touchStart.Select(ts => new PinGesture('Touch'));
   }
 
-  //Subject that converts input touch events into Zoom gestures
+  // Subject that converts input touch events into Zoom gestures
   static createTouchZoomSubject(vc) {
-    var _doc = $(document);
+    const $doc = $(document);
 
-    var gestureStart = vc.toObservable("gesturestart");
-    var gestureChange = vc.toObservable("gesturechange");
-    var gestureEnd = _doc.toObservable("gestureend");
-    var touchCancel = _doc.toObservable("touchcancel");
+    const gestureStart = vc.toObservable('gesturestart');
+    const gestureChange = vc.toObservable('gesturechange');
+    const gestureEnd = $doc.toObservable('gestureend');
+    const touchCancel = $doc.toObservable('touchcancel');
 
-    var gestures = gestureStart.SelectMany(function (o) {
-      return gestureChange.TakeUntil(gestureEnd.Merge(touchCancel)).Skip(1).Zip(gestureChange, function (left, right) {
-        return {
-          "left": left.originalEvent,
-          "right": right.originalEvent
-        };
-      }).Where(function (g) {
-        return g.left.scale !== g.right.scale && g.right.scale !== 0;
-      }).Select(function (g) {
-        var delta = g.left.scale / g.right.scale;
-        return new ZoomGesture(o.originalEvent.layerX, o.originalEvent.layerY, 1 / delta, "Touch");
-      });
-    });
-
-    return gestures;
-  }
-
-  /**************************************************************
-   * Gestures for IE on Win8                                     *
-   * MSPointerUp, MSPointerDown                                  *
-   * MSGestureStart, MSGestureChange, MSGestureEnd, MSGestureTap *
-   ***************************************************************/
-  //Subject that converts input touch events (on win8+) into Pan gestures
-  static createTouchPanSubjectWin8(vc) {
-    var gestureStart = vc.toObservable("MSGestureStart");
-    var gestureChange = vc.toObservable("MSGestureChange");
-    var gestureEnd = vc.toObservable("MSGestureEnd");
-
-    var gestures = gestureStart.SelectMany(function (o) {
-      return gestureChange.TakeUntil(gestureEnd).Skip(1).Zip(gestureChange, function (left, right) {
-        return {
-          "left": left.originalEvent,
-          "right": right.originalEvent
-        };
-      }).Where(function (g) {
-        return g.left.scale === g.right.scale && g.left.detail != g.left.MSGESTURE_FLAG_INERTIA && g.right.detail != g.right.MSGESTURE_FLAG_INERTIA;
-      }).Select(function (g) {
-        return new PanGesture(g.left.offsetX - g.right.offsetX, g.left.offsetY - g.right.offsetY, "Touch");
-      });
-    });
+    const gestures = gestureStart.SelectMany(o =>
+      gestureChange
+        .TakeUntil(gestureEnd.Merge(touchCancel))
+        .Skip(1)
+        .Zip(gestureChange, (left, right) => ({
+          left: left.originalEvent,
+          right: right.originalEvent
+        }))
+        .Where(g => g.left.scale !== g.right.scale && g.right.scale !== 0)
+        .Select(g => {
+          const delta = g.left.scale / g.right.scale;
+          return new ZoomGesture(o.originalEvent.layerX, o.originalEvent.layerY, 1 / delta, 'Touch');
+        })
+    );
 
     return gestures;
   }
 
-  //Subject that converts input touch events (on win8+) into Pin gestures
-  static createTouchPinSubjectWin8(vc) {
-    var pointerDown = vc.toObservable("MSPointerDown");
-
-    return pointerDown.Select(function (gt) {
-      return new PinGesture("Touch");
-    });
-  }
-
-  //Subject that converts input touch events (on win8+) into Zoom gestures
-  static createTouchZoomSubjectWin8(vc) {
-    var gestureStart = vc.toObservable("MSGestureStart");
-    var gestureChange = vc.toObservable("MSGestureChange");
-    var gestureEnd = vc.toObservable("MSGestureEnd");
-
-    var gestures = gestureStart.SelectMany(function (o) {
-      return gestureChange.TakeUntil(gestureEnd).Where(function (g) {
-        return g.originalEvent.scale !== 0 && g.originalEvent.detail != g.originalEvent.MSGESTURE_FLAG_INERTIA;
-      }).Select(function (g) {
-        return new ZoomGesture(o.originalEvent.offsetX, o.originalEvent.offsetY, 1 / g.originalEvent.scale, "Touch");
-      });
-    });
-
-    return gestures;
-  }
-
-
-
-  static addMSGestureSource(dom) {
-    this.gesturesDictionary.forEach(function (child) {
-      if (child === dom) {
-        return;
-      }
-    });
-
-    this.gesturesDictionary.push(dom);
-
-    dom.addEventListener("MSPointerDown", function (e) {
-      if (dom.gesture === undefined) {
-        var newGesture = new MSGesture();
-        newGesture.target = dom;
-        dom.gesture = newGesture;
-      }
-
-      dom.gesture.addPointer(e.pointerId);
-    }, false);
-  };
-
-  //Creates gestures stream for specified jQuery element
+  // Creates gestures stream for specified jQuery element
   static getGesturesStream(source) {
-    var panController;
-    var zoomController;
-    var pinController;
+    let panController;
+    let zoomController;
+    let pinController;
 
-    if (window.navigator.msPointerEnabled && window.MSGesture) {
-      addMSGestureSource(source[0]);
-
-      // win 8
-      panController = createTouchPanSubjectWin8(source);
-      var zoomControllerTouch = createTouchZoomSubjectWin8(source);
-      var zoomControllerMouse = createZoomSubject(source);
-      zoomController = zoomControllerTouch.Merge(zoomControllerMouse);
-      pinController = createTouchPinSubjectWin8(source);
-    } else if ('ontouchstart' in document.documentElement) {
+    if ('ontouchstart' in document.documentElement) {
       // webkit browser
+      /*
       panController = this.createTouchPanSubject(source);
       zoomController = this.createTouchZoomSubject(source);
       pinController = this.createTouchPinSubject(source);
+      */
     } else {
       // no touch support, only mouse events
       panController = this.createPanSubject(source);
@@ -263,45 +175,6 @@ export default class Gestures {
       pinController = this.createPinSubject(source);
     }
 
-    return pinController.Merge(panController.Merge(zoomController));
-  }
-
-  static getPanPinGesturesStream(source) {
-    var panController;
-    var pinController;
-
-    if (window.navigator.msPointerEnabled && window.MSGesture) {
-      addMSGestureSource(source[0]);
-
-      // win 8
-      panController = createTouchPanSubjectWin8(source);
-      var zoomControllerTouch = createTouchZoomSubjectWin8(source);
-      var zoomControllerMouse = createZoomSubject(source);
-      pinController = createTouchPinSubjectWin8(source);
-    } else if ('ontouchstart' in document.documentElement) {
-      // webkit browser
-      panController = createTouchPanSubject(source);
-      pinController = createTouchPinSubject(source);
-    } else {
-      // no touch support, only mouse events
-      panController = createPanSubject(source);
-      pinController = createPinSubject(source);
-    }
-
-    return pinController.Merge(panController.Select(function (el) {
-      el.yOffset = 0;
-      return el;
-    }));
-  }
-
-  //modify the gesture stream to apply the logic of gesture handling by the axis
-  static applyAxisBehavior(gestureSequence) {
-    return gestureSequence.Where(function (el) {
-      return el.Type != "Zoom";
-    }).Select(function (el) {
-      if (el.Type == "Pan")
-        el.yOffset = 0;
-      return el;
-    });
+    return merge(pinController, panController, zoomController);
   }
 }
