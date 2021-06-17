@@ -1,7 +1,4 @@
-// Using require here for jQuery-ui to work with jQuery: need global variable
-const $ = require('jquery');
-window.jQuery = $;
-require('jquery-ui');
+import $ from 'jquery';
 
 import Axis from './axis';
 import VirtualCanvas from './vc';
@@ -19,3 +16,13 @@ $(document).ready(() => {
   VirtualCanvas();
   $vc.virtualCanvas();
 });
+
+
+/*
+[ ] подключить rxjs
+[ ] проверить gestures.js
+[ ] создавать в index поток жестов
+[ ] создать контроллер (и проверить, что viewport-controller норм работает — тут если чего-то нет, лучше удалить все упоминания, чем переносить файл-заглушку. Например, в контроллере есть ссылка на data.js, нам это вообще не надо, все эти функции надо выпилить нафиг)
+[ ] добавить в index updateAxis и updateMarker
+[ ] проверить, что всё работает
+*/
