@@ -1,17 +1,6 @@
-// Using require here for jQuery-ui to work with jQuery: need global variable
-const $ = require('jquery');
-window.jQuery = $;
-require('jquery-ui');
-
-//import CZ from './cz';
-
+import $ from 'jquery';
 import constants from './constants'
-import initWidgetVC from './vc';
-import Axis from './axis'
-import Data from './data'
-import Layout from './layout'
-import Service from './service'
-import UrlNav from './urlnav'
+import Layout from './layout';
 
 export default class Common {
   constructor() {
@@ -164,17 +153,6 @@ export default class Common {
       constants.allowedVisibileImprecision :
       false;
   }
-  //Common.compareVisibles = compareVisibles;
-
-  /*
-      Is called by direct user actions like links, bread crumbs clicking, etc.
-      */
-  /*function setVisibleByUserDirectly(visible) {
-    CZ.Tours.pauseTourAtAnyAnimation = false;
-    if (CZ.Tours.tour != undefined && CZ.Tours.tour.state == 'play')
-      CZ.Tours.tourPause();
-    return setVisible(visible);
-  }*/
 
   setVisible(visible) {
     if (visible) {
@@ -188,182 +166,6 @@ export default class Common {
       true
     );
   }
-
-  // Reload the data.
-  reloadData() {
-    return Data.getTimelines(null).then(function (response) {
-      if (!response) {
-        return;
-      }
-
-      var root = vc.virtualCanvas('getLayerContent');
-      root.beginEdit();
-      Layout.Merge(response, root);
-      root.endEdit(true);
-      this.vc.virtualCanvas('updateViewport');
-    });
-  }
-
-  ProcessContent(content) {
-    var root = vc.virtualCanvas('getLayerContent');
-    root.beginEdit();
-    Layout.Merge(content, root);
-    root.endEdit(true);
-
-    InitializeRegimes(content);
-
-    if (startHash) {
-      visReg = UrlNav.navStringToVisible(
-        this.startHash.substring(1),
-        this.vc
-      );
-    }
-
-    if (!visReg && cosmosVisible) {
-      window.location.hash = cosmosVisible;
-      visReg = UrlNav.navStringToVisible(cosmosVisible, vc);
-    }
-
-    if (visReg) {
-      controller.moveToVisible(visReg, true);
-      updateAxis(vc, ax);
-      var vp = vc.virtualCanvas('getViewport');
-
-      if (startHash && window.location.hash !== startHash) {
-        hashChangeFromOutside = false;
-        window.location.hash = startHash; // synchronizing
-      }
-    }
-  }
-
-  InitializeRegimes(content) {
-    var f = function (timeline) {
-      if (!timeline) return null;
-      var v = vc.virtualCanvas('findElement', 't' + timeline.id);
-      regimes.push(v);
-      if (v) v = UrlNav.vcelementToNavString(v);
-      return v;
-    };
-
-    var cosmosTimeline = content;
-    cosmosVisible = f(cosmosTimeline);
-    UrlNav.navigationAnchor = vc.virtualCanvas(
-      'findElement',
-      't' + cosmosTimeline.id
-    );
-    $('#regime-link-cosmos').click(function () {
-      var visible = UrlNav.navStringToVisible(
-        Common.cosmosVisible,
-        Common.vc
-      );
-      setVisible(visible);
-    });
-
-    var earthTimeline = Layout.FindChildTimeline(
-      cosmosTimeline,
-      constants.earthTimelineID,
-      true
-    );
-    if (typeof earthTimeline !== 'undefined') {
-      earthVisible = f(earthTimeline);
-      $('#regime-link-earth').click(function () {
-        var visible = UrlNav.navStringToVisible(
-          earthVisible,
-          vc
-        );
-        setVisible(visible);
-      });
-
-      var lifeTimeline = Layout.FindChildTimeline(
-        earthTimeline,
-        constants.lifeTimelineID,
-        false
-      );
-      if (typeof lifeTimeline !== 'undefined') {
-        lifeVisible = f(lifeTimeline);
-        $('#regime-link-life').click(function () {
-          var visible = UrlNav.navStringToVisible(
-            lifeVisible,
-            vc
-          );
-          setVisible(visible);
-        });
-
-        var prehistoryTimeline = Layout.FindChildTimeline(
-          lifeTimeline,
-          constants.prehistoryTimelineID,
-          false
-        );
-        if (typeof prehistoryTimeline !== 'undefined') {
-          prehistoryVisible = f(prehistoryTimeline);
-          $('#regime-link-prehistory').click(function () {
-            var visible = UrlNav.navStringToVisible(
-              Common.prehistoryVisible,
-              Common.vc
-            );
-            setVisible(visible);
-          });
-
-          var humanityTimeline = Layout.FindChildTimeline(
-            prehistoryTimeline,
-            constants.humanityTimelineID,
-            true
-          );
-          if (typeof humanityTimeline !== 'undefined') {
-            humanityVisible = f(humanityTimeline);
-            $('#regime-link-humanity').click(function () {
-              var visible = UrlNav.navStringToVisible(
-                Common.humanityVisible,
-                Common.vc
-              );
-              setVisible(visible);
-            });
-          }
-        }
-      }
-    }
-
-    maxPermitedVerticalRange = {
-      top: cosmosTimeline.y,
-      bottom: cosmosTimeline.y + cosmosTimeline.height,
-    };
-
-    // update virtual canvas horizontal borders
-    constants.maxPermitedTimeRange = {
-      left: cosmosTimeline.left,
-      right: cosmosTimeline.right,
-    };
-
-    maxPermitedScale = UrlNav.navStringToVisible(cosmosVisible, vc).scale * 1.1;
-  }
-
-
-  setCookie(c_name, value, exdays) {
-    var exdate = new Date();
-    exdate.setDate(exdate.getDate() + exdays);
-    var c_value =
-      escape(value) +
-      (exdays == null ? '' : '; expires=' + exdate.toUTCString());
-    document.cookie = c_name + '=' + c_value;
-  }
-  //Common.setCookie = setCookie;
-
-  getCookie(c_name) {
-    var i,
-      x,
-      y,
-      ARRcookies = document.cookie.split(';');
-    for (i = 0; i < ARRcookies.length; i++) {
-      x = ARRcookies[i].substr(0, ARRcookies[i].indexOf('='));
-      y = ARRcookies[i].substr(ARRcookies[i].indexOf('=') + 1);
-      x = x.replace(/^\s+|\s+$/g, '');
-      if (x == c_name) {
-        return unescape(y);
-      }
-    }
-    return null;
-  }
-  //Common.getCookie = getCookie;
 
   viewportToViewBox(vp) {
     var w = vp.widthScreenToVirtual(vp.width);
@@ -383,20 +185,6 @@ export default class Common {
     };
   }
   //Common.viewportToViewBox = viewportToViewBox;
-
-  // Initialize the JQuery UI Widgets
-  initialize() {
-    this.ax = $('#axis');
-    this.axis = new Axis(this.ax);
-
-
-    /*VirtualCanvas.initialize();
-    var vc = $('#vc');
-    vc.virtualCanvas();*/
-    initWidgetVC();
-    this.vc = $('#vc');
-    this.vc.virtualCanvas();
-  }
 
   updateLayout() {
     //CZ.BreadCrumbs.visibleAreaWidth = $('.breadcrumbs-container').width();
@@ -434,68 +222,5 @@ export default class Common {
     ];
 
     return $.inArray(path, matches) > -1;
-  }
-
-  //loading the data from the service
-  loadData() {
-    return Data.getTimelines(null).then(
-      function (response) {
-        //console.log(response);
-        if (!response) {
-          return;
-        }
-
-        ProcessContent(response);
-        this.vc.virtualCanvas('updateViewport');
-
-        if (initialContent) {
-          Service.getContentPath(initialContent).then(
-            function (response) {
-              window.location.hash = response;
-            },
-            function (error) {
-              console.log(
-                'Error connecting to service:\n' + error.responseText
-              );
-            }
-          );
-        }
-
-        /*CZ.Service.getTours().then(
-        	function (response) {
-        		CZ.Tours.parseTours(response);
-        		CZ.Tours.initializeToursContent();
-        	},
-        	function (error) {
-        		console.log(
-        			'Error connecting to service:\n' + error.responseText
-        		);
-        	}
-        );*/
-      },
-      function (error) {
-        console.log('Error connecting to service:\n' + error.responseText);
-      }
-    );
-  }
-
-  // Retrieves the URL to download the data from
-  loadDataUrl() {
-    // The following regexp extracts the pattern dataurl=url from the page hash to enable loading timelines from arbitrary sources.
-    var match = /dataurl=([^\/]*)/g.exec(window.location.hash);
-    if (match) {
-      return unescape(match[1]);
-    } else {
-      switch (constants.czDataSource) {
-        case 'db':
-          return '/api/get';
-        case 'relay':
-          return 'ChronozoomRelay';
-        case 'dump':
-          return '/dumps/beta-get.json';
-        default:
-          return null;
-      }
-    }
   }
 }

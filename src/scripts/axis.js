@@ -1106,10 +1106,10 @@ class DateTickSource extends TickSource {
       this.delta = 1;
       this.beta = Math.log(this.range.max - this.range.min) * this.log10;
 
-      if (this.beta >= -0.2) this.regime = "Quarters_Month";
-      if (this.beta <= -0.2 && this.beta >= -0.8) this.regime = "Month_Weeks";
-      if (this.beta <= -0.8 && this.beta >= -1.4) this.regime = "Weeks_Days";
-      if (this.beta <= -1.4) this.regime = "Days_Quarters";
+      if (this.beta >= -0.2) this.regime = 'Quarters_Month';
+      if (this.beta <= -0.2 && this.beta >= -0.8) this.regime = 'Month_Weeks';
+      if (this.beta <= -0.8 && this.beta >= -1.4) this.regime = 'Weeks_Days';
+      if (this.beta <= -1.4) this.regime = 'Days_Quarters';
 
       this.level = 1;
     };
