@@ -1,15 +1,13 @@
 import * as constants from './constants';
-import Data from './data'
-import Common from './common'
-import VCContent from './vccontent'
-import { Viewport2d, VisibleRegion2d } from './viewport'
-
+import Common from './common';
+import VCContent from './vccontent';
+import { Viewport2d, VisibleRegion2d } from './viewport';
 
 //constructs the new instance of the viewportController that handles an animations of the viewport
 //@param setVisible (void setVisible(visible))      a callback which is called when controller wants to set intermediate visible regions while animation.
 //@param getViewport (Viewport2D getViewport())     a callback which is called when controller wants to get recent state of corresponding viewport.
 //@param gestureSource (merged RX gesture stream)   an RX stream of gestures described in gestures.js
-export default class ViewportController2 {
+export default class ViewportController {
   constructor(setVisible, getViewport /*, gesturesSource*/ ) {
     this.activeAnimation; //currently running animation. undefined if no animation active
 
@@ -164,7 +162,7 @@ export default class ViewportController2 {
     this.coerceVisibleOuterZoom = function (vp, gesture) {
       if (gesture.Type === "Zoom") {
         var visible = vp.visible;
-        if (typeof Common.maxPermitedScale != 'undefined' && Common.maxPermitedScale) {
+        if (typeof Common.maxPermitedScale !== 'undefined' && Common.maxPermitedScale) {
           if (visible.scale > Common.maxPermitedScale) {
             gesture.scaleFactor = Common.maxPermitedScale / visible.scale;
             ZoomViewport(vp, gesture);
@@ -239,125 +237,6 @@ export default class ViewportController2 {
     };
 
     var requestTimer = null;
-    this.getMissingData = function (vbox, lca) {
-      // request new data only in case if authoring is not active
-      if (typeof CZ.Authoring === 'undefined' || CZ.Authoring.isActive === false) {
-        window.clearTimeout(requestTimer);
-        requestTimer = window.setTimeout(function () {
-          getMissingTimelines(vbox, lca);
-        }, 1000);
-      }
-    };
-
-    function getMissingTimelines(vbox, lca) {
-      Data.getTimelines({
-        lca: lca.guid,
-        start: vbox.left,
-        end: vbox.right,
-        minspan: constants.minTimelineWidth * vbox.scale
-      }).then(function (response) {
-        CZ.Layout.Merge(response, lca);
-        // NYI: Server currently does not support incremental data. Consider/Future:
-        //      var exhibitIds = extractExhibitIds(response);
-        //      getMissingExhibits(vbox, lca, exhibitIds);
-      }, function (error) {
-        console.log("Error connecting to service:\n" + error.responseText);
-      });
-    }
-
-    function getMissingExhibits(vbox, lca, exhibitIds) {
-      Service.postData({
-        ids: exhibitIds
-      }).then(function (response) {
-        MergeContentItems(lca, exhibitIds, response.exhibits);
-      }, function (error) {
-        console.log("Error connecting to service:\n" + error.responseText);
-      });
-    }
-
-    function extractExhibitIds(timeline) {
-      var ids = [];
-      if (timeline.exhibits instanceof Array) {
-        timeline.exhibits.forEach(function (childExhibit) {
-          ids.push(childExhibit.id);
-        });
-      }
-      if (timeline.timelines instanceof Array) {
-        timeline.timelines.forEach(function (childTimeline) {
-          ids = ids.concat(extractExhibitIds(childTimeline));
-        });
-      }
-      return ids;
-    }
-
-    function MergeContentItems(timeline, exhibitIds, exhibits) {
-      timeline.children.forEach(function (child) {
-        if (child.type === "infodot") {
-          var idx = exhibitIds.indexOf(child.guid);
-          if (idx !== -1) {
-            child.contentItems = exhibits[idx].contentItems;
-          }
-        }
-      });
-
-      timeline.children.forEach(function (child) {
-        if (child.type === "timeline")
-          MergeContentItems(child, exhibitIds, exhibits);
-      });
-    }
-
-    /*gesturesSource.Subscribe(function (gesture) {
-    	if (typeof gesture != "undefined" && !CZ.Authoring.isActive) {
-    		var isAnimationActive = self.activeAnimation;
-    		var oldId = isAnimationActive ? self.activeAnimation.ID : undefined;
-
-    		self.updateRecentViewport();
-    		var latestViewport = self.recentViewport;
-
-    		if (gesture.Type == "Pin") {
-    			self.stopAnimation();
-    			return;
-    		}
-
-    		if (gesture.Type == "Pan" || gesture.Type == "Zoom") {
-    			var newlyEstimatedViewport = calculateTargetViewport(latestViewport, gesture, self.estimatedViewport);
-
-    			var vbox = Common.viewportToViewBox(newlyEstimatedViewport);
-    			var wnd = new VCContent.CanvasRectangle(null, null, null, vbox.left, vbox.top, vbox.width, vbox.height, null);
-
-    			//if (!CZ.Common.vc.virtualCanvas("inBuffer", wnd, newlyEstimatedViewport.visible.scale)) {
-    			//    var lca = CZ.Common.vc.virtualCanvas("findLca", wnd);
-    			//    self.getMissingData(vbox, lca);
-    			//}
-    			if (!self.estimatedViewport) {
-    				self.activeAnimation = new CZ.ViewportAnimation.PanZoomAnimation(latestViewport);
-
-    				//storing size to handle window resize
-    				self.saveScreenParameters(latestViewport);
-    			}
-
-    			if (gesture.Type == "Pan")
-    				self.activeAnimation.velocity = constants.panSpeedFactor * 0.001; // is baseline coefficient for animation speed to make not very slow and not very fast. it can be altered with a panSpeedFactor value in settings.js
-
-    			else
-    				self.activeAnimation.velocity = constants.zoomSpeedFactor * 0.0025; // is baseline coefficient for animation speed to make not very slow and not very fast. it can be altered with a zoomSpeedFactor value in settings.js
-
-
-    			//set or update the target state of the viewport
-    			self.activeAnimation.setTargetViewport(newlyEstimatedViewport);
-    			self.estimatedViewport = newlyEstimatedViewport;
-    		}
-
-    		if (oldId != undefined)
-    			animationUpdated(oldId, self.activeAnimation.ID); //notifing that the animation was updated
-
-    		else
-    			AnimationStarted(self.activeAnimation.ID);
-
-    		if (!isAnimationActive)
-    			self.animationStep(self);
-    	}
-    });*/
 
     self.updateRecentViewport();
     this.saveScreenParameters(self.recentViewport);
@@ -447,10 +326,6 @@ export default class ViewportController2 {
       var vbox = Common.viewportToViewBox(targetViewport);
       var wnd = new VCContent.CanvasRectangle(null, null, null, vbox.left, vbox.top, vbox.width, vbox.height, null);
 
-      //if (!Common.vc.virtualCanvas("inBuffer", wnd, targetViewport.visible.scale)) {
-      //    var lca = Common.vc.virtualCanvas("findLca", wnd);
-      //    self.getMissingData(vbox, lca);
-      //}
       if (noAnimation) {
         self.stopAnimation();
         self.setVisible(visible);
@@ -477,11 +352,6 @@ export default class ViewportController2 {
         if (this.activeAnimation.isActive)
           AnimationStarted(this.activeAnimation.ID);
 
-        // Added by Dmitry Voytsekhovskiy, 20/06/2013
-        // I make the animation step call asynchronous to first return the active animation id, then call the step.
-        // This would fix a bug when a target viewport is very close to the current viewport and animation finishes in a single step,
-        // hence it calls the animation completed handlers which accept the animation id, but these handler couldn't yet get the id to expect
-        // if the call is synchronous.
         setTimeout(function () {
           return self.animationStep(self);
         }, 0);
@@ -491,6 +361,5 @@ export default class ViewportController2 {
 
       return (this.activeAnimation) ? this.activeAnimation.ID : undefined;
     };
-    //end of public fields
   }
 }

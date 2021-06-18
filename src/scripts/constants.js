@@ -88,7 +88,7 @@ export const infoDotZoomConstraint = 0.005;
 export const infoDotAxisFreezeThreshold = 0.75;
 export const maxPermitedTimeRange = {
   left: -13700000000,
-  right: 0
+  right: 13700000000,
 };
 export const deeperZoomConstraints = [{
     left: -14000000000,
@@ -120,26 +120,3 @@ export const maxTickArrangeIterations = 3;
 export const minSmallTickSpace = 8;
 export const smallTickLength = 7;
 export const timescaleThickness = 2;
-
-// IDs of regime timelines
-export const cosmosTimelineID = "00000000-0000-0000-0000-000000000000";
-export const earthTimelineID = "48fbb8a8-7c5d-49c3-83e1-98939ae2ae67";
-export const lifeTimelineID = "d4809be4-3cf9-4ddd-9703-3ca24e4d3a26";
-export const prehistoryTimelineID = "a6b821df-2a4d-4f0e-baf5-28e47ecb720b";
-export const humanityTimelineID = "4afb5bb6-1544-4416-a949-8c8f473e544d";
-
-// seadragon
-export const seadragonServiceURL = 'http://api.zoom.it/v1/content/?url=';
-export const seadragonImagePath = '/images/seadragonControls/';
-export const seadragonMaxConnectionAttempts = 3;
-export const seadragonRetryInterval = 2000;
-
-// progresive loading
-//export const serverUrlHost = location.protocol + "//" + location.host;
-export const serverUrlHost = 'https://www.chronozoom.com';
-export const serviceUrl = serverUrlHost + '/api';
-export const minTimelineWidth = 100;
-
-// Bing search API constants
-export const defaultBingSearchTop = 50;
-export const defaultBingSearchSkip = 0;

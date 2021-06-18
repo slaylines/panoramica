@@ -1,5 +1,8 @@
 @import 'normalize.css';
 
+@import './axis';
+@import './vc';
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;

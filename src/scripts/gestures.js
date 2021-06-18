@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import { fromEvent, zip, merge } from 'rxjs';
-import { skip, map, flatMap, takeUntil } from 'rxjs/operators';
+import { skip, map, flatMap, takeUntil, tap } from 'rxjs/operators';
 
 import * as constants from './constants';
 import * as utils from './utils';
@@ -12,6 +12,12 @@ const PanGesture = (xOffset, yOffset, src) => ({
   Source: src,
   xOffset: xOffset,
   yOffset: yOffset,
+});
+
+// Gesture for ending panning
+const PanEndGesture = (src) => ({
+  Type: 'PanEnd',
+  Source: src,
 });
 
 // Gesture for perfoming Zoom operation
@@ -43,18 +49,21 @@ export default class Gestures {
     const mouseMoves = fromEvent(vc, 'mousemove');
     const mouseUps = fromEvent($(document), 'mouseup');
 
-    return mouseDowns.pipe(flatMap(mouseDown =>
-      mouseMoves.pipe(
-        map(mouseMove =>
-          PanGesture(
-            mouseMove.clientX - mouseDown.clientX,
-            mouseMove.clientY - mouseDown.clientY,
-            'Mouse'
-          )
-        ),
-        takeUntil(mouseUps)
-      )
-    ));
+    return merge(
+      mouseDowns.pipe(flatMap(mouseDown =>
+        mouseMoves.pipe(
+          map(mouseMove =>
+            PanGesture(
+              mouseMove.clientX - mouseDown.clientX,
+              mouseMove.clientY - mouseDown.clientY,
+              'Mouse'
+            )
+          ),
+          takeUntil(mouseUps)
+        ))
+      ),
+      mouseUps.pipe(map(mouseUp => PanEndGesture('Mouse')))
+    );
   }
 
   // Subject that converts input mouse events into Pin gestures
