@@ -206,7 +206,6 @@ export default class Axis {
         : 0;
 
       if (this.textSize !== 0) {
-        this.labelsDiv.css('height', this.textSize);
         this.canvas[0].height = this.canvasSize;
       }
     } else {
@@ -215,7 +214,6 @@ export default class Axis {
         : 0;
 
       if (this.textSize !== 0) {
-        this.labelsDiv.css('width', this.textSize);
         this.canvas[0].width = this.canvasSize;
         this.width = this.textSize + this.canvasSize;
 
@@ -279,7 +277,7 @@ export default class Axis {
   }
 
   /*
-   * Adds new labels to container and apply styles to them.
+   * Adds new labels to container and apply this.styles to them.
   */
   addNewLabels() {
     for (let i = 0, len = this.ticks.length; i < len; i++) {
@@ -575,10 +573,10 @@ class TickSource {
     this.level = 1;
     this.present;
 
-    const divPool = [];
-    const isUsedPool = [];
-    const inners = [];
-    const styles = [];
+    this.divPool = [];
+    this.isUsedPool = [];
+    this.inners = [];
+    this.styles = [];
 
     this.length = 0;
 
@@ -589,34 +587,34 @@ class TickSource {
     // gets first available div (not used) or creates new one
     this.getDiv = x => {
       const inner = this.getLabel(x);
-      let i = inners.indexOf(inner);
+      let i = this.inners.indexOf(inner);
 
       if (i !== -1) {
-        isUsedPool[i] = true;
-        styles[i].display = 'block';
+        this.isUsedPool[i] = true;
+        this.styles[i].display = 'block';
 
-        return divPool[i];
+        return this.divPool[i];
       } else {
-        i = isUsedPool.indexOf(false);
+        i = this.isUsedPool.indexOf(false);
 
         if (i !== -1) {
-          isUsedPool[i] = true;
-          styles[i].display = 'block';
-          inners[i] = inner;
+          this.isUsedPool[i] = true;
+          this.styles[i].display = 'block';
+          this.inners[i] = inner;
 
-          const div = divPool[i][0];
+          const div = this.divPool[i][0];
 
           div.innerHTML = inner;
-          divPool[i]._size = { width: div.offsetWidth, height: div.offsetHeight };
+          this.divPool[i]._size = { width: div.offsetWidth, height: div.offsetHeight };
 
-          return divPool[i];
+          return this.divPool[i];
         } else {
           const div = $(`<div>${inner}</div>`);
 
-          isUsedPool[this.length] = true;
-          divPool[this.length] = div;
-          inners[this.length] = inner;
-          styles[this.length] = div[0].style;
+          this.isUsedPool[this.length] = true;
+          this.divPool[this.length] = div;
+          this.inners[this.length] = inner;
+          this.styles[this.length] = div[0].style;
 
           div._size = undefined;
           this.length += 1;
@@ -629,10 +627,10 @@ class TickSource {
     // make all not used divs invisible (final step)
     this.refreshDivs = () => {
       for (let i = 0; i < this.length; i++) {
-        if (isUsedPool[i]) {
-          isUsedPool[i] = false;
+        if (this.isUsedPool[i]) {
+          this.isUsedPool[i] = false;
         } else {
-          styles[i].display = 'none';
+          this.styles[i].display = 'none';
         }
       }
     };
@@ -719,7 +717,7 @@ class TickSource {
 
   hideDivs() {
     for (let i = 0; i < this.length; i++) {
-      styles[i].display = 'none';
+      this.styles[i].display = 'none';
     }
   }
 
@@ -1026,7 +1024,7 @@ class CalendarTickSource extends TickSource {
         let t = ticks[i].position;
 
         // Count minor ticks from 1BCE, not from 1CE if step between large ticks greater than 1
-        if (step > 1e-10 + 1 / (n + 1) && Math.abs(t - 1.0) < 1e-10) t = 0;
+        if (step > 1e-10 + 1 / (count + 1) && Math.abs(t - 1.0) < 1e-10) t = 0;
 
         for (let k = 1; k <= count; k++) {
           tick = t + step * k;

@@ -12,7 +12,8 @@
   "dependencies": {
     "jquery": "3.6.0",
     "jquery-ui": "1.12.1",
-    "normalize.css": "8.0.1"
+    "normalize.css": "8.0.1",
+    "rxjs": "7.1.0"
   },
   "devDependencies": {
     "parcel-bundler": "1.12.5",
