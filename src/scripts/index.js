@@ -30,6 +30,7 @@ $(document).ready(() => {
   updateAxis();
 
   const canvasGestures = Gestures.getGesturesStream($vc);
+  const axisGestures = Gestures.applyAxisBehavior(Gestures.getGesturesStream($axis));
 
   // TODO: обрабатывать touch жесты
   // TODO: обрабатывать жесты на оси
