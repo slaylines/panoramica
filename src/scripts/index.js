@@ -1,5 +1,7 @@
 import $ from 'jquery';
 
+import * as constants from './constants';
+
 import Axis from './axis';
 import VirtualCanvas from './vc';
 import Gestures from './gestures';
@@ -17,7 +19,7 @@ $(document).ready(() => {
 
   const center = { x: -1000, y: 0 };
 
-  const visibleRegion = new VisibleRegion2d(center.x, center.y, 1000000);
+  const visibleRegion = new VisibleRegion2d(center.x, center.y, 1000);
   const viewport = new Viewport2d(1, $vc[0].clientWidth, $vc[0].clientHeight, visibleRegion);
 
   const updateAxis = () => {
@@ -31,12 +33,14 @@ $(document).ready(() => {
 
   const canvasGestures = Gestures.getGesturesStream($vc);
 
+  // TODO: починить переключение оси на другой режим
+  // TODO: обновлять маркер текущего значения
+  // TODO: улучшить ограничения для глубины зума
+
   // TODO: обрабатывать touch жесты
   // TODO: обрабатывать жесты на оси
-  // TODO: починить переключение оси на другой режим
+
   // TODO: включить плавные жесты через viewport-controller
-  // TODO: ограничивать глубину зума
-  // TODO: обновлять маркер текущего значения
 
   canvasGestures.subscribe(value => {
     if (value.Type === 'Pan') {
@@ -61,6 +65,19 @@ $(document).ready(() => {
       viewport.visible.centerX = newCenter.x;
       viewport.visible.centerY = newCenter.y;
       viewport.visible.scale *= value.scaleFactor;
+
+      // Zoom constraints
+      let constraint;
+      for (let i = 0; i < constants.deeperZoomConstraints.length; i++) {
+        const zc = constants.deeperZoomConstraints[i];
+        if (zc.left <= newCenter.x && zc.right > newCenter.x) {
+          constraint = zc.scale;
+          break;
+        }
+      }
+      if (constraint && viewport.visible.scale < constraint) {
+        viewport.visible.scale = constraint;
+      }
 
       updateAxis();
     }
