@@ -253,7 +253,7 @@ export default class Axis {
       const tick = this.ticks[i];
 
       if (tick.label) {
-        const size = tick.label._size;
+        const size = tick.label.size;
         let { width, height } = size;
 
         if (!width) width = this.ctx.measureText(tick.label[0].textContent).width * 1.5;
@@ -287,7 +287,7 @@ export default class Axis {
         const labelDiv = label[0];
 
         label.addClass('cz-timescale-label');
-        label._size = { width: labelDiv.offsetWidth, height: labelDiv.offsetHeight };
+        label.size = { width: labelDiv.offsetWidth, height: labelDiv.offsetHeight };
 
         this.labelsDiv[0].appendChild(labelDiv);
       }
@@ -605,7 +605,7 @@ class TickSource {
           const div = this.divPool[i][0];
 
           div.innerHTML = inner;
-          this.divPool[i]._size = { width: div.offsetWidth, height: div.offsetHeight };
+          this.divPool[i].size = { width: div.offsetWidth, height: div.offsetHeight };
 
           return this.divPool[i];
         } else {
@@ -616,7 +616,7 @@ class TickSource {
           this.inners[this.length] = inner;
           this.styles[this.length] = div[0].style;
 
-          div._size = undefined;
+          div.size = undefined;
           this.length += 1;
 
           return div;
