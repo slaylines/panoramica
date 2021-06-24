@@ -228,6 +228,9 @@ export default class Axis {
    * ticksources.
   */
   setMode() {
+    //Need to hide divs before set new mode
+    this.tickSources[this.mode].hideDivs();
+    
     if (this.range.min <= -10000) {
       this.mode = 'cosmos';
     } else {
@@ -236,8 +239,6 @@ export default class Axis {
       // BCE or CE years
       this.mode = beta < 0 ? 'date' : 'calendar';
     }
-
-    this.tickSources[this.mode].hideDivs();
   }
 
   /*
@@ -1203,7 +1204,7 @@ class DateTickSource extends TickSource {
 
           for (let k = 1; k <= countDays; k += date_step) {
             day = k;
-            tick = dates.getCoordinateFromYMD(year, month, day);
+            const tick = dates.getCoordinateFromYMD(year, month, day);
 
             if (tick >= this.range.min && tick <= this.range.max) {
               ticks[num] = {
