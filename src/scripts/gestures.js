@@ -186,4 +186,14 @@ export default class Gestures {
 
     return merge(pinController, panController, zoomController);
   }
+
+  //modify the gesture stream to apply the logic of gesture handling by the axis
+  static  applyAxisBehavior(gestureSequence) {
+    return gestureSequence
+      .Where(function (el) { return el.Type != "Zoom"; })
+      .Select(function (el) {
+        if (el.Type == "Pan") el.yOffset = 0; return el;
+      });
+  }
+
 }

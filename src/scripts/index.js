@@ -27,11 +27,13 @@ $(document).ready(() => {
     const rb = viewport.pointScreenToVirtual(viewport.width, viewport.height);
 
     axis.update({ min: lt.x, max: rb.x });
+    axis.updateMarker(viewport);
   }
 
   updateAxis();
 
   const canvasGestures = Gestures.getGesturesStream($vc);
+ // const axisGestures = Gestures.applyAxisBehavior(Gestures.getGesturesStream($axis));
 
   // TODO: починить переключение оси на другой режим
   // TODO: обновлять маркер текущего значения
@@ -39,7 +41,6 @@ $(document).ready(() => {
 
   // TODO: обрабатывать touch жесты
   // TODO: обрабатывать жесты на оси
-
   // TODO: включить плавные жесты через viewport-controller
 
   canvasGestures.subscribe(value => {
