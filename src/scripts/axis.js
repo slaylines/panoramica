@@ -144,6 +144,7 @@ export default class Axis {
 
   mouseMove(e) {
     this.lastEvent = e;
+
     const point = utils.getXBrowserMouseOrigin(this.container, e);
     const k = (this.range.max - this.range.min) / this.width;
     const time = this.range.max - k * (this.width - point.x);
@@ -152,14 +153,9 @@ export default class Axis {
   }
 
   updateMarker(viewport) {
-    let e;
-    if (this.lastEvent != undefined) {
-      e = this.lastEvent
-    } else {
-      e = {pageX: 0, pageY: 0}
-    }
-    
-    const origin = utils.getXBrowserMouseOrigin(this.container, e);
+    const event = this.lastEvent || { pageX: 0, pageY: 0 };
+
+    const origin = utils.getXBrowserMouseOrigin(this.container, event);
     const position = viewport.pointScreenToVirtual(origin.x, origin.y);
 
     this.setTimeMarker(position.x);
