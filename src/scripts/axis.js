@@ -1131,7 +1131,7 @@ class DateTickSource extends TickSource {
 
       if (year === 0) year_temp -= 1;
       if (text === 'January') text += ` ${year_temp}`;
-      if (tempDays === 1) text += `${day} ${dates.months[month]}`;
+      if (tempDays === 1) text = `${day} ${dates.months[month]}`;
       if (this.regime === 'Weeks_Days' && day === 3)  text += `, ${year_temp}`;
       if (this.regime === 'Days_Quarters' && day === 1) text += `, ${year_temp}`;
 
@@ -1219,11 +1219,23 @@ class DateTickSource extends TickSource {
             const tick = dates.getCoordinateFromYMD(year, month, day);
 
             if (tick >= this.range.min && tick <= this.range.max) {
-              ticks[num] = {
-                position: tick,
-                label: this.getDiv(tick)
-              };
-              num += 1;
+              if (this.regime == "Weeks_Days") {
+                switch(k) {
+                  case 3, 10, 17, 24, 28:
+                    ticks[num] = { 
+                      position: tick, 
+                      label: this.getDiv(tick) 
+                    };
+                    num += 1;
+                    break;
+                }
+              } else {
+                  ticks[num] = { 
+                    position: tick, 
+                    label: this.getDiv(tick) 
+                  };
+                  num += 1;
+              }
             }
           }
         }
