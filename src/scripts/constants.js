@@ -90,6 +90,10 @@ export const maxPermitedTimeRange = {
   left: -13700000000,
   right: 13700000000,
 };
+export const maxPermitedVerticalRange = {
+  top: 0,
+  bottom: 10000000
+};
 export const deeperZoomConstraints = [{
     left: -14000000000,
     right: -1000000000,
