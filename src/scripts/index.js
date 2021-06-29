@@ -33,7 +33,7 @@ $(document).ready(() => {
   updateAxis();
 
   const canvasGestures = Gestures.getGesturesStream($vc);
- // const axisGestures = Gestures.applyAxisBehavior(Gestures.getGesturesStream($axis));
+  const axisGestures = Gestures.getGesturesStream($axis);
 
   // TODO: починить переключение оси на другой режим
   // TODO: обновлять маркер текущего значения
@@ -42,6 +42,16 @@ $(document).ready(() => {
   // TODO: обрабатывать touch жесты
   // TODO: обрабатывать жесты на оси
   // TODO: включить плавные жесты через viewport-controller
+
+  axisGestures.subscribe(value => {
+    if (value.Type === 'Pan') {
+      const virtualOffset = viewport.vectorScreenToVirtual(value.xOffset, value.yOffset);
+
+      viewport.visible.centerX = center.x - virtualOffset.x;
+
+      updateAxis();
+    }
+  });
 
   canvasGestures.subscribe(value => {
     if (value.Type === 'Pan') {
@@ -84,7 +94,3 @@ $(document).ready(() => {
     }
   });
 });
-
-
-/*
-*/
