@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import { fromEvent, zip, merge } from 'rxjs';
-import { skip, map, flatMap, takeUntil, tap } from 'rxjs/operators';
+import { skip, map, flatMap, takeUntil, tap, filter } from 'rxjs/operators';
 
 import * as constants from './constants';
 import * as utils from './utils';
@@ -185,5 +185,16 @@ export default class Gestures {
     }
 
     return merge(pinController, panController, zoomController);
+  }
+
+  // Modify the gesture stream to apply the logic of gesture handling by the axis
+  static applyAxisBehavior(source) {
+    return source.pipe(
+      map(el => {
+        if (el.Type === "Pan") el.yOffset = 0;
+        return el;
+      }),
+      filter(el => el.Type != "Zoom")
+    );
   }
 }
