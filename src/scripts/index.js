@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import { merge } from 'rxjs';
 
 import * as constants from './constants';
 
@@ -33,27 +34,16 @@ $(document).ready(() => {
   updateAxis();
 
   const canvasGestures = Gestures.getGesturesStream($vc);
-  const axisGestures = Gestures.getGesturesStream($axis);
+  const axisGestures = Gestures.applyAxisBehavior(Gestures.getGesturesStream($axis));
 
-  // TODO: починить переключение оси на другой режим
-  // TODO: обновлять маркер текущего значения
+  const allGestures = merge(canvasGestures, axisGestures);
+
   // TODO: улучшить ограничения для глубины зума
-  // TODO: обрабатывать жесты на оси
 
   // TODO: обрабатывать touch жесты
   // TODO: включить плавные жесты через viewport-controller
 
-  axisGestures.subscribe(value => {
-    if (value.Type === 'Pan') {
-      const virtualOffset = viewport.vectorScreenToVirtual(value.xOffset, value.yOffset);
-
-      viewport.visible.centerX = center.x - virtualOffset.x;
-
-      updateAxis();
-    }
-  });
-
-  canvasGestures.subscribe(value => {
+  allGestures.subscribe(value => {
     if (value.Type === 'Pan') {
       const virtualOffset = viewport.vectorScreenToVirtual(value.xOffset, value.yOffset);
 

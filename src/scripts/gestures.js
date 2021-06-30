@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import { fromEvent, zip, merge } from 'rxjs';
-import { skip, map, flatMap, takeUntil, tap } from 'rxjs/operators';
+import { skip, map, flatMap, takeUntil, tap, filter } from 'rxjs/operators';
 
 import * as constants from './constants';
 import * as utils from './utils';
