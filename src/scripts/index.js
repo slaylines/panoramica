@@ -6,10 +6,14 @@ import * as constants from './constants';
 import Axis from './axis';
 import VirtualCanvas from './vc';
 import Gestures from './gestures';
+import ViewportController from './viewport-controller';
 
 import { VisibleRegion2d, Viewport2d } from './viewport';
 
 $(document).ready(() => {
+  // Used in viewport-animation.js
+  window.globalAnimationID = 1;
+
   const $axis = $('#axis');
   const axis = new Axis($axis);
 
@@ -38,11 +42,43 @@ $(document).ready(() => {
 
   const allGestures = merge(canvasGestures, axisGestures);
 
+  const controller = new ViewportController(
+    visible => {
+      console.log(visible);
+      /*
+      var vp = CZ.Common.vc.virtualCanvas("getViewport");
+      var markerPos = CZ.Common.axis.markerPosition;
+      var oldMarkerPosInScreen = vp.pointVirtualToScreen(markerPos, 0).x;
+
+      CZ.Common.vc.virtualCanvas("setVisible", visible, CZ.Common.controller.activeAnimation);
+      CZ.Common.updateAxis(CZ.Common.vc, CZ.Common.ax);
+      vp = CZ.Common.vc.virtualCanvas("getViewport");
+      if (CZ.Tours.pauseTourAtAnyAnimation) {
+          CZ.Tours.tourPause();
+          CZ.Tours.pauseTourAtAnyAnimation = false;
+      }
+
+      var hoveredInfodot = CZ.Common.vc.virtualCanvas("getHoveredInfodot");
+      var actAni = CZ.Common.controller.activeAnimation != undefined;
+
+      if (actAni) {
+          var newMarkerPos = vp.pointScreenToVirtual(oldMarkerPosInScreen, 0).x;
+          CZ.Common.updateMarker();
+      }
+
+      updateTimeSeriesChart(vp);
+      */
+    },
+    () => viewport,
+    allGestures
+  );
+
   // TODO: улучшить ограничения для глубины зума
 
   // TODO: обрабатывать touch жесты
   // TODO: включить плавные жесты через viewport-controller
 
+  /*
   allGestures.subscribe(value => {
     if (value.Type === 'Pan') {
       const virtualOffset = viewport.vectorScreenToVirtual(value.xOffset, value.yOffset);
@@ -83,4 +119,5 @@ $(document).ready(() => {
       updateAxis();
     }
   });
+  */
 });

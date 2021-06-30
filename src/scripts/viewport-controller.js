@@ -3,8 +3,11 @@ import {
   maxPermitedTimeRange,
   maxPermitedVerticalRange,
   targetFps,
+  panSpeedFactor,
+  zoomSpeedFactor,
 } from './constants';
 import { Viewport2d, VisibleRegion2d } from './viewport';
+import { PanZoomAnimation } from './viewport-animation';
 
 //constructs the new instance of the viewportController that handles an animations of the viewport
 //@param setVisible (void setVisible(visible))      a callback which is called when controller wants to set intermediate visible regions while animation.
@@ -12,7 +15,7 @@ import { Viewport2d, VisibleRegion2d } from './viewport';
 //@param gestureSource (merged RX gesture stream)   an RX stream of gestures described in gestures.js
 
 export default class ViewportController {
-  constructor(setVisible, getViewport /*, gesturesSource*/ ) {
+  constructor(setVisible, getViewport, gesturesSource) {
     //currently running animation. undefined if no animation active
     this.activeAnimation;
 
@@ -42,6 +45,7 @@ export default class ViewportController {
     //storing callbacks
     this.setVisible = setVisible;
     this.getViewport = getViewport;
+    this.gesturesSource = gesturesSource;
 
     //an estimated viewport state that will be at the and of the ongoing pan/zoom animation
     this.estimatedViewport;
@@ -101,6 +105,8 @@ export default class ViewportController {
       @param gesture                      (Gesture)    the gesture to handle (only Pan and Zoom gesture)
       @param latestViewport               (Viewport2D) the state of the viewort that is currently observed by the user
       @remarks    The is no checks for gesture type. So make sure that the gestures only of pan and zoom types would be passed to this method
+    */
+    this.calculateTargetViewport = (latestViewport, gesture, previouslyEstimatedViewport) => {
       const { centerX, centerY, scale } = latestViewport.visible
       let initialViewport;
 
@@ -128,7 +134,7 @@ export default class ViewportController {
       this.coerceVisible(initialViewport, gesture);
 
       return initialViewport;
-    }
+    };
 
     /*
       Saves the height and the width of the viewport in screen coordinates and recalculates rependant characteristics (e.g. maximumPermitedScale)
@@ -203,13 +209,11 @@ export default class ViewportController {
       @param vp (Viewport) the viewport.visible region to coerce
     */
     this.coerceVisibleHorizontalBound = function (vp) {
-      const { centerX } = vp.visible;
-
       if (maxPermitedTimeRange) {
-        if (centerX > maxPermitedTimeRange.right) {
-          centerX = maxPermitedTimeRange.right;
-        } else if (centerX < maxPermitedTimeRange.left) {
-          centerX = maxPermitedTimeRange.left;
+        if (vp.visible.centerX > maxPermitedTimeRange.right) {
+          vp.visible.centerX = maxPermitedTimeRange.right;
+        } else if (vp.visible.centerX < maxPermitedTimeRange.left) {
+          vp.visible.centerX = maxPermitedTimeRange.left;
         }
       }
     };
@@ -220,13 +224,11 @@ export default class ViewportController {
       @param vp (Viewport) the viewport.visible region to coerce
     */
     this.coerceVisibleVerticalBound = function (vp) {
-      const { centerY } = vp.visible;
-
       if (maxPermitedVerticalRange) {
-        if (centerY > maxPermitedVerticalRange.bottom) {
-          centerY = maxPermitedVerticalRange.bottom;
-        } else if (centerY < maxPermitedVerticalRange.top) {
-          centerY = maxPermitedVerticalRange.top;
+        if (vp.visible.centerY > maxPermitedVerticalRange.bottom) {
+          vp.visible.centerY = maxPermitedVerticalRange.bottom;
+        } else if (vp.visible.centerY < maxPermitedVerticalRange.top) {
+          vp.visible.centerY = maxPermitedVerticalRange.top;
         }
       }
     };
@@ -243,9 +245,6 @@ export default class ViewportController {
       );
     };
 
-    this.updateRecentViewport();
-    this.saveScreenParameters(this.recentViewport);
-
     this.stopAnimation = function () {
       this.estimatedViewport = null;
 
@@ -253,23 +252,23 @@ export default class ViewportController {
         this.activeAnimation.isForciblyStoped = true;
         this.activeAnimation.isActive = false;
 
-        animationUpdated(this.activeAnimation.ID);
+        this.animationUpdated(this.activeAnimation.ID);
       }
     };
 
     // Notify all subscribers that the ongoiung animation is updated (or halted)
-    function animationUpdated(oldId, newId) {
+    this.animationUpdated = function (oldId, newId) {
       this.onAnimationUpdated.forEach(animation => {
         animation(oldId, newId);
       });
-    }
+    };
 
     // Notify all subscribers that the animation is started
-    function animationStarted(newId) {
+    this.animationStarted = function (newId) {
       this.onAnimationStarted.forEach(animation => {
         animation(newId);
       });
-    }
+    };
 
     // Sets visible and schedules a new call of animation step if the animation still active and needs more frames
     this.animationStep = function (self) {
@@ -349,14 +348,66 @@ export default class ViewportController {
 
       if (!wasAnimationActive) {
         if (this.activeAnimation.isActive) {
-          animationStarted(this.activeAnimation.ID);
+          this.animationStarted(this.activeAnimation.ID);
         }
         setTimeout(() => this.animationStep(self), 0);
       } else {
-        animationUpdated(oldId, this.activeAnimation.ID);
+        this.animationUpdated(oldId, this.activeAnimation.ID);
       }
 
       return this.activeAnimation ? this.activeAnimation.ID : null;
+    };
+
+    this.gesturesSource.subscribe(gesture => {
+      if (typeof gesture !== 'undefined') {
+        const oldId = this.activeAnimation ? this.activeAnimation.ID : null;
+
+        this.updateRecentViewport();
+
+        if (gesture.Type === 'Pin') {
+          this.stopAnimation();
+          return;
+        }
+
+        if (gesture.Type === 'Pan' || gesture.Type === 'Zoom') {
+          const newViewport = this.calculateTargetViewport(this.recentViewport, gesture, this.estimatedViewport);
+
+          if (!this.estimatedViewport) {
+            this.activeAnimation = new PanZoomAnimation(this.recentViewport);
+            this.saveScreenParameters(this.recentViewport);
+          }
+
+          this.activeAnimation.velocity = gesture.Type === 'Pan'
+            ? panSpeedFactor * 0.001
+            : zoomSpeedFactor * 0.0025;
+
+
+          this.activeAnimation.setTargetViewport(newViewport);
+          this.estimatedViewport = newViewport;
+        }
+
+        if (oldId) {
+          this.animationUpdated(oldId, this.activeAnimation.ID);
+        } else {
+          this.animationStarted(this.activeAnimation.ID);
+        }
+
+        if (!this.activeAnimation) this.animationStep(this);
+      }
+    });
+
+    this.updateRecentViewport();
+    this.saveScreenParameters(this.recentViewport);
+
+    //requests to stop any ongoing animation
+    this.stopAnimation = function () {
+      this.estimatedViewport = null;
+      if (this.activeAnimation) {
+        this.activeAnimation.isForciblyStoped = true;
+        this.activeAnimation.isActive = false;
+
+        this.animationUpdated(this.activeAnimation.ID, null);
+      }
     };
   }
 }
