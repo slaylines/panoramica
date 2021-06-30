@@ -7,7 +7,7 @@ export const ellipticalZoomZoomoutFactor = 0.5;
 export const ellipticalZoomDuration = 9000;
 export const panSpeedFactor = 3.0;
 export const zoomSpeedFactor = 2.0;
-export const zoomLevelFactor = 1.05;
+export const zoomLevelFactor = 1.4;
 export const allowedVisibileImprecision = 0.00001;
 export const allowedMathImprecision = 0.000001;
 export const allowedMathImprecisionDecimals = parseInt(allowedMathImprecision.toExponential().split('-')[1]);
@@ -89,6 +89,10 @@ export const infoDotAxisFreezeThreshold = 0.75;
 export const maxPermitedTimeRange = {
   left: -13700000000,
   right: 13700000000,
+};
+export const maxPermitedVerticalRange = {
+  top: 0,
+  bottom: 10000000
 };
 export const deeperZoomConstraints = [{
     left: -14000000000,

@@ -53,6 +53,7 @@ export default class Axis {
     this.height;
     this.canvasHeight;
     this.markerPosition;
+    this.lastEvent;
 
     this.tickSources = {
       cosmos: new CosmosTickSource(),
@@ -142,11 +143,22 @@ export default class Axis {
   }
 
   mouseMove(e) {
+    this.lastEvent = e;
+
     const point = utils.getXBrowserMouseOrigin(this.container, e);
     const k = (this.range.max - this.range.min) / this.width;
     const time = this.range.max - k * (this.width - point.x);
 
     this.setTimeMarker(time);
+  }
+
+  updateMarker(viewport) {
+    const event = this.lastEvent || { pageX: 0, pageY: 0 };
+
+    const origin = utils.getXBrowserMouseOrigin(this.container, event);
+    const position = viewport.pointScreenToVirtual(origin.x, origin.y);
+
+    this.setTimeMarker(position.x);
   }
 
   /*
@@ -228,6 +240,9 @@ export default class Axis {
    * ticksources.
   */
   setMode() {
+    //Need to hide divs before set new mode
+    this.tickSources[this.mode].hideDivs();
+    
     if (this.range.min <= -10000) {
       this.mode = 'cosmos';
     } else {
@@ -236,8 +251,6 @@ export default class Axis {
       // BCE or CE years
       this.mode = beta < 0 ? 'date' : 'calendar';
     }
-
-    this.tickSources[this.mode].hideDivs();
   }
 
   /*
@@ -253,7 +266,7 @@ export default class Axis {
       const tick = this.ticks[i];
 
       if (tick.label) {
-        const size = tick.label._size;
+        const size = tick.label.size;
         let { width, height } = size;
 
         if (!width) width = this.ctx.measureText(tick.label[0].textContent).width * 1.5;
@@ -287,7 +300,7 @@ export default class Axis {
         const labelDiv = label[0];
 
         label.addClass('cz-timescale-label');
-        label._size = { width: labelDiv.offsetWidth, height: labelDiv.offsetHeight };
+        label.size = { width: labelDiv.offsetWidth, height: labelDiv.offsetHeight };
 
         this.labelsDiv[0].appendChild(labelDiv);
       }
@@ -605,7 +618,7 @@ class TickSource {
           const div = this.divPool[i][0];
 
           div.innerHTML = inner;
-          this.divPool[i]._size = { width: div.offsetWidth, height: div.offsetHeight };
+          this.divPool[i].size = { width: div.offsetWidth, height: div.offsetHeight };
 
           return this.divPool[i];
         } else {
@@ -616,7 +629,7 @@ class TickSource {
           this.inners[this.length] = inner;
           this.styles[this.length] = div[0].style;
 
-          div._size = undefined;
+          div.size = undefined;
           this.length += 1;
 
           return div;
@@ -1118,7 +1131,7 @@ class DateTickSource extends TickSource {
 
       if (year === 0) year_temp -= 1;
       if (text === 'January') text += ` ${year_temp}`;
-      if (tempDays === 1) text += `${day} ${dates.months[month]}`;
+      if (tempDays === 1) text = `${day} ${dates.months[month]}`;
       if (this.regime === 'Weeks_Days' && day === 3)  text += `, ${year_temp}`;
       if (this.regime === 'Days_Quarters' && day === 1) text += `, ${year_temp}`;
 
@@ -1203,14 +1216,26 @@ class DateTickSource extends TickSource {
 
           for (let k = 1; k <= countDays; k += date_step) {
             day = k;
-            tick = dates.getCoordinateFromYMD(year, month, day);
+            const tick = dates.getCoordinateFromYMD(year, month, day);
 
             if (tick >= this.range.min && tick <= this.range.max) {
-              ticks[num] = {
-                position: tick,
-                label: this.getDiv(tick)
-              };
-              num += 1;
+              if (this.regime == "Weeks_Days") {
+                switch(k) {
+                  case 3, 10, 17, 24, 28:
+                    ticks[num] = { 
+                      position: tick, 
+                      label: this.getDiv(tick) 
+                    };
+                    num += 1;
+                    break;
+                }
+              } else {
+                  ticks[num] = { 
+                    position: tick, 
+                    label: this.getDiv(tick) 
+                  };
+                  num += 1;
+              }
             }
           }
         }
