@@ -14,12 +14,6 @@ const PanGesture = (xOffset, yOffset, src) => ({
   yOffset: yOffset,
 });
 
-// Gesture for ending panning
-const PanEndGesture = (src) => ({
-  Type: 'PanEnd',
-  Source: src,
-});
-
 // Gesture for perfoming Zoom operation
 // Takes zoom origin point in screen coordinates and scale value
 const ZoomGesture = (xOrigin, yOrigin, scaleFactor, src) => ({
@@ -49,20 +43,17 @@ export default class Gestures {
     const mouseMoves = fromEvent(vc, 'mousemove');
     const mouseUps = fromEvent($(document), 'mouseup');
 
-    return merge(
-      mouseDowns.pipe(flatMap(mouseDown =>
-        mouseMoves.pipe(
-          map(mouseMove =>
-            PanGesture(
-              mouseMove.clientX - mouseDown.clientX,
-              mouseMove.clientY - mouseDown.clientY,
-              'Mouse'
-            )
-          ),
-          takeUntil(mouseUps)
-        ))
-      ),
-      mouseUps.pipe(map(mouseUp => PanEndGesture('Mouse')))
+    return mouseDowns.pipe(flatMap(mouseDown =>
+      mouseMoves.pipe(
+        map(mouseMove =>
+          PanGesture(
+            mouseMove.clientX - mouseDown.clientX,
+            mouseMove.clientY - mouseDown.clientY,
+            'Mouse'
+          )
+        ),
+        takeUntil(mouseUps)
+      ))
     );
   }
 

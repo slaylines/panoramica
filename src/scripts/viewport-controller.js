@@ -300,7 +300,7 @@ export default class ViewportController {
           this.stopAnimation();
         }
 
-        this.setVisible(this.activeAnimation.produceNextVisible(vp));
+        this.setVisible(this.activeAnimation.produceNextVisible(this.recentViewport));
       }
 
       this.frames += 1;
@@ -392,7 +392,9 @@ export default class ViewportController {
           this.animationStarted(this.activeAnimation.ID);
         }
 
-        if (!this.activeAnimation) this.animationStep(this);
+        // TODO: check why do we need this if
+        // if (!this.activeAnimation)
+        this.animationStep(this);
       }
     });
 
