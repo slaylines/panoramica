@@ -1,19 +1,23 @@
-import * as constants from './constants';
-import Common from './common';
-import VCContent from './vccontent';
+import {
+  deeperZoomConstraints,
+  maxPermitedTimeRange,
+  maxPermitedVerticalRange,
+  targetFps,
+  panSpeedFactor,
+  zoomSpeedFactor,
+} from './constants';
 import { Viewport2d, VisibleRegion2d } from './viewport';
+import { PanZoomAnimation } from './viewport-animation';
 
 //constructs the new instance of the viewportController that handles an animations of the viewport
 //@param setVisible (void setVisible(visible))      a callback which is called when controller wants to set intermediate visible regions while animation.
 //@param getViewport (Viewport2D getViewport())     a callback which is called when controller wants to get recent state of corresponding viewport.
 //@param gestureSource (merged RX gesture stream)   an RX stream of gestures described in gestures.js
+
 export default class ViewportController {
-  constructor(setVisible, getViewport /*, gesturesSource*/ ) {
-    this.activeAnimation; //currently running animation. undefined if no animation active
-
-
-    //recent FPS value
-    this.FPS;
+  constructor(setVisible, getViewport, gesturesSource) {
+    //currently running animation. undefined if no animation active
+    this.activeAnimation;
 
     //the outer visible scale that is permitied to observe.
     //it is automaticly adjusted on each viewport resize event not to let the user observe the interval
@@ -31,15 +35,8 @@ export default class ViewportController {
 
     //a scale constraint value to prevent the user from zooming too deep into the infodot, contentItem, etc
     //is used in coerceVisibleInnerZoom, and overrides the timelines zooming constraints
-    //is to be set by the page that join the controller and the virtual canvas
-    //(number)
-    this.effectiveExplorationZoomConstraint = undefined;
-
-    // an animation frame enqueueing function. It is used to schedula a new animation frame
-    if (!window.requestAnimFrame)
-      window.requestAnimFrame = function (callback) {
-        window.setTimeout(callback, 1000 / constants.targetFps); // scheduling frame rendering timer
-      };
+    //is to be set by the page that join the controller and the virtual canvas (number)
+    this.effectiveExplorationZoomConstraint;
 
     //storing screen size to detect window resize
     this.viewportWidth;
@@ -48,15 +45,13 @@ export default class ViewportController {
     //storing callbacks
     this.setVisible = setVisible;
     this.getViewport = getViewport;
-
-    //the latest known state of the viewport
-    var self = this;
+    this.gesturesSource = gesturesSource;
 
     //an estimated viewport state that will be at the and of the ongoing pan/zoom animation
-    this.estimatedViewport = undefined;
+    this.estimatedViewport;
 
     //a recent copy of the viewport;
-    this.recentViewport = undefined;
+    this.recentViewport;
 
     //callbacks array. each element will be invoked when animation is completed (viewport took the required state)
     //callback has one argument - the id of complete animation
@@ -72,85 +67,90 @@ export default class ViewportController {
     //callback has one argument - (the id of started animation)
     this.onAnimationStarted = [];
 
-    /*Transforms the viewport correcting its visible according to pan gesture passed
-    @param viewport     (Viewport2D)    The viewport to transform
-    @param gesture      (PanGesture) The gesture to apply
+    this.FPS;
+    this.frames = 0;
+    this.oneSecondFrames = 0;
+
+    /*
+      Transforms the viewport correcting its visible according to pan gesture passed
+      @param viewport     (Viewport2D) The viewport to transform
+      @param gesture      (PanGesture) The gesture to apply
     */
     function PanViewport(viewport, panGesture) {
-      var virtualOffset = viewport.vectorScreenToVirtual(panGesture.xOffset, panGesture.yOffset);
-      var oldVisible = viewport.visible;
-      viewport.visible.centerX = oldVisible.centerX - virtualOffset.x;
-      viewport.visible.centerY = oldVisible.centerY - virtualOffset.y;
+      const virtualOffset = viewport.vectorScreenToVirtual(panGesture.xOffset, panGesture.yOffset);
+
+      viewport.visible.centerX -= virtualOffset.x;
+      viewport.visible.centerY -= virtualOffset.y;
     }
 
-    /*Transforms the viewport correcting its visible according to zoom gesture passed
-    @param viewport     (Viewport2D)    The viewport to transform
-    @param gesture      (ZoomGesture) The gesture to apply
+    /*
+      Transforms the viewport correcting its visible according to zoom gesture passed
+      @param viewport     (Viewport2D)  The viewport to transform
+      @param gesture      (ZoomGesture) The gesture to apply
     */
     function ZoomViewport(viewport, zoomGesture) {
-      var oldVisible = viewport.visible;
-      var x = zoomGesture.xOrigin + (viewport.width / 2.0 - zoomGesture.xOrigin) * zoomGesture.scaleFactor;
-      var y = zoomGesture.yOrigin + (viewport.height / 2.0 - zoomGesture.yOrigin) * zoomGesture.scaleFactor;
-      var newCenter = viewport.pointScreenToVirtual(x, y);
+      const { xOrigin, yOrigin, scaleFactor } = zoomGesture;
+      const x = xOrigin + (viewport.width / 2.0 - xOrigin) * scaleFactor;
+      const y = yOrigin + (viewport.height / 2.0 - yOrigin) * scaleFactor;
+      const newCenter = viewport.pointScreenToVirtual(x, y);
+
       viewport.visible.centerX = newCenter.x;
       viewport.visible.centerY = newCenter.y;
-      viewport.visible.scale = oldVisible.scale * zoomGesture.scaleFactor;
+      viewport.visible.scale *= scaleFactor;
     }
 
-    /*calculates a viewport that will be actual at the end of the gesture handling animation
-    @param previouslyEstimatedViewport       (Viewport2D)    the state of the viewport that is expacted to be at the end of the ongoing Pan/Zoom animation. undefined if no pan/zoom animation is active
-    @param gesture                  (Gesture)       the gesture to handle (only Pan and Zoom gesture)
-    @param latestViewport           (Viewport2D)    the state of the viewort that is currently observed by the user
-    @remarks    The is no checks for gesture type. So make shure that the gestures only of pan and zoom types would be passed to this method
+    /*
+      Calculates a viewport that will be actual at the end of the gesture handling animation
+      @param previouslyEstimatedViewport  (Viewport2D) the state of the viewport that is expacted to be at the end of the ongoing Pan/Zoom animation. undefined if no pan/zoom animation is active
+      @param gesture                      (Gesture)    the gesture to handle (only Pan and Zoom gesture)
+      @param latestViewport               (Viewport2D) the state of the viewort that is currently observed by the user
+      @remarks    The is no checks for gesture type. So make sure that the gestures only of pan and zoom types would be passed to this method
     */
-    function calculateTargetViewport(latestViewport, gesture, previouslyEstimatedViewport) {
-      var latestVisible = latestViewport.visible;
-      var initialViewport;
-      if (gesture.Type == "Zoom") {
-        if (gesture.Source == "Touch") {
-          if (previouslyEstimatedViewport)
-            initialViewport = previouslyEstimatedViewport;
-          else {
-            initialViewport = new Viewport2d(latestViewport.aspectRatio, latestViewport.width, latestViewport.height, new VisibleRegion2d(latestVisible.centerX, latestVisible.centerY, latestVisible.scale));
-          }
-        } else {
-          initialViewport = new Viewport2d(latestViewport.aspectRatio, latestViewport.width, latestViewport.height, new VisibleRegion2d(latestVisible.centerX, latestVisible.centerY, latestVisible.scale));
-        }
+    this.calculateTargetViewport = (latestViewport, gesture, previouslyEstimatedViewport) => {
+      const { centerX, centerY, scale } = latestViewport.visible
+      let initialViewport;
 
-        //calculating changed viewport according to the gesture
+      if (gesture.Type === 'Zoom') {
+        initialViewport = (gesture.Source === 'Touch' ? previouslyEstimatedViewport : null) ||
+          new Viewport2d(
+            latestViewport.aspectRatio,
+            latestViewport.width,
+            latestViewport.height,
+            new VisibleRegion2d(centerX, centerY, scale)
+          );
+
         ZoomViewport(initialViewport, gesture);
       } else {
-        if (previouslyEstimatedViewport)
-          initialViewport = previouslyEstimatedViewport;
-        else {
-          //there is no previously estimated viewport and there is no currently active Pan/Zoom animation. Cloning latest viewport (deep copy)
-          initialViewport = new Viewport2d(latestViewport.aspectRatio, latestViewport.width, latestViewport.height, new VisibleRegion2d(latestVisible.centerX, latestVisible.centerY, latestVisible.scale));
-        }
+        initialViewport = previouslyEstimatedViewport || new Viewport2d(
+          latestViewport.aspectRatio,
+          latestViewport.width,
+          latestViewport.height,
+          new VisibleRegion2d(centerX, centerY, scale)
+        );
 
-        //calculating changed viewport according to the gesture
         PanViewport(initialViewport, gesture);
       }
 
-      self.coerceVisible(initialViewport, gesture); //applying navigaion constraints
-      return initialViewport;
-    }
+      this.coerceVisible(initialViewport, gesture);
 
-    /*
-    Saves the height and the width of the viewport in screen coordinates and recalculates rependant characteristics (e.g. maximumPermitedScale)
-    @param viewport  (Viewport2D) a viewport to take parameters from
-    */
-    this.saveScreenParameters = function (viewport) {
-      self.viewportWidth = viewport.width;
-      self.viewportHeight = viewport.height;
+      return initialViewport;
     };
 
     /*
-    Is used for coercing of the visible regions produced by the controller according to navigation constraints
-    Navigation constraints are set in settings.js file
-    @param vp (Viewport) the viewport.visible region to coerce
-    @param gesture the gesture which caused the viewport to change
-    we need the viewport (width, height) and the (zoom)gesture to
-    undo the (zoom)gesture when it exceed the navigation constraints
+      Saves the height and the width of the viewport in screen coordinates and recalculates rependant characteristics (e.g. maximumPermitedScale)
+      @param viewport  (Viewport2D) a viewport to take parameters from
+    */
+    this.saveScreenParameters = function (viewport) {
+      this.viewportWidth = viewport.width;
+      this.viewportHeight = viewport.height;
+    };
+
+    /*
+      Is used for coercing of the visible regions produced by the controller according to navigation constraints
+      Navigation constraints are set in settings.js file
+      @param vp (Viewport) the viewport.visible region to coerce
+      @param gesture the gesture which caused the viewport to change
+      we need the viewport (width, height) and the (zoom)gesture to undo the (zoom)gesture when it exceed the navigation constraints
     */
     this.coerceVisible = function (vp, gesture) {
       this.coerceVisibleInnerZoom(vp, gesture);
@@ -159,207 +159,257 @@ export default class ViewportController {
       this.coerceVisibleVerticalBound(vp);
     };
 
-    this.coerceVisibleOuterZoom = function (vp, gesture) {
-      if (gesture.Type === "Zoom") {
-        var visible = vp.visible;
-        if (typeof Common.maxPermitedScale !== 'undefined' && Common.maxPermitedScale) {
-          if (visible.scale > Common.maxPermitedScale) {
-            gesture.scaleFactor = Common.maxPermitedScale / visible.scale;
-            ZoomViewport(vp, gesture);
-          }
-        }
-      }
-    };
-
     /*
-    Applys out of bounds constraint to the visible region (Preventing the user from observing the future time and the past before set treshold)
-    The bounds are set as maxPermitedTimeRange variable in a constants.js file
-    @param vp (Viewport) the viewport.visible region to coerce
-    */
-    this.coerceVisibleHorizontalBound = function (vp) {
-      var visible = vp.visible;
-      if (constants.maxPermitedTimeRange) {
-        if (visible.centerX > constants.maxPermitedTimeRange.right)
-          visible.centerX = constants.maxPermitedTimeRange.right;
-        else if (visible.centerX < constants.maxPermitedTimeRange.left)
-          visible.centerX = constants.maxPermitedTimeRange.left;
-      }
-    };
-
-    /*
-    Applys out of bounds constraint to the visible region (Preventing the user from observing the future time and the past before set treshold)
-    The bounds are set as maxPermitedTimeRange variable in a constants.js file
-    @param vp (Viewport) the viewport.visible region to coerce
-    */
-    this.coerceVisibleVerticalBound = function (vp) {
-      var visible = vp.visible;
-      if (Common.maxPermitedVerticalRange) {
-        if (visible.centerY > Common.maxPermitedVerticalRange.bottom)
-          visible.centerY = Common.maxPermitedVerticalRange.bottom;
-        else if (visible.centerY < Common.maxPermitedVerticalRange.top)
-          visible.centerY = Common.maxPermitedVerticalRange.top;
-      }
-    };
-
-    /*
-    Applys a deeper zoom constraint to the visible region
-    Deeper (minimum scale) zoom constraint is set as deeperZoomConstraints array in a settings.js file
-    @param vp (Viewport) the viewport.visible region to coerce
-    @param gesture the gesture which caused the viewport to change
+      Applys a deeper zoom constraint to the visible region
+      Deeper (minimum scale) zoom constraint is set as deeperZoomConstraints array in a settings.js file
+      @param vp (Viewport) the viewport.visible region to coerce
+      @param gesture the gesture which caused the viewport to change
     */
     this.coerceVisibleInnerZoom = function (vp, gesture) {
-      var visible = vp.visible;
-      var x = visible.centerX;
-      var scale = visible.scale;
-      var constr = undefined;
-      if (this.effectiveExplorationZoomConstraint)
-        constr = this.effectiveExplorationZoomConstraint;
+      const { centerX, scale } = vp.visible;
 
-      else
-        for (var i = 0; i < constants.deeperZoomConstraints.length; i++) {
-          var possibleConstr = constants.deeperZoomConstraints[i];
-          if (possibleConstr.left <= x && possibleConstr.right > x) {
+      let constr;
+
+      if (this.effectiveExplorationZoomConstraint) {
+        constr = this.effectiveExplorationZoomConstraint;
+      } else {
+        for (let i = 0; i < deeperZoomConstraints.length; i++) {
+          const possibleConstr = deeperZoomConstraints[i];
+
+          if (possibleConstr.left <= centerX && possibleConstr.right > centerX) {
             constr = possibleConstr.scale;
             break;
           }
         }
-      if (constr) {
-        if (scale < constr) {
-          visible.scale = constr;
+      }
+
+      if (constr && scale < constr) {
+        scale = constr;
+      }
+    };
+
+    this.coerceVisibleOuterZoom = function (vp, gesture) {
+      if (gesture.Type !== "Zoom") return;
+
+      // TODO: not working for now: maxPermitedScale is always undefined
+      /*
+      const { scale } = vp.visible;
+
+      if (Common.maxPermitedScale && scale > Common.maxPermitedScale) {
+        gesture.scaleFactor = Common.maxPermitedScale / scale;
+
+        ZoomViewport(vp, gesture);
+      }
+      */
+    };
+
+    /*
+      Applys out of bounds constraint to the visible region (Preventing the user from observing the future time and the past before set treshold)
+      The bounds are set as maxPermitedTimeRange variable in a constants.js file
+      @param vp (Viewport) the viewport.visible region to coerce
+    */
+    this.coerceVisibleHorizontalBound = function (vp) {
+      if (maxPermitedTimeRange) {
+        if (vp.visible.centerX > maxPermitedTimeRange.right) {
+          vp.visible.centerX = maxPermitedTimeRange.right;
+        } else if (vp.visible.centerX < maxPermitedTimeRange.left) {
+          vp.visible.centerX = maxPermitedTimeRange.left;
         }
       }
     };
 
-    self.updateRecentViewport = function () {
-      var vp = getViewport();
-      var vis = vp.visible;
-      self.recentViewport = new Viewport2d(vp.aspectRatio, vp.width, vp.height, new VisibleRegion2d(vis.centerX, vis.centerY, vis.scale));
-    };
-
-    var requestTimer = null;
-
-    self.updateRecentViewport();
-    this.saveScreenParameters(self.recentViewport);
-
-    //requests to stop any ongoing animation
-    this.stopAnimation = function () {
-      self.estimatedViewport = undefined;
-      if (self.activeAnimation) {
-        self.activeAnimation.isForciblyStoped = true;
-        self.activeAnimation.isActive = false;
-
-        animationUpdated(self.activeAnimation.ID, undefined);
+    /*
+      Applys out of bounds constraint to the visible region (Preventing the user from observing the future time and the past before set treshold)
+      The bounds are set as maxPermitedTimeRange variable in a constants.js file
+      @param vp (Viewport) the viewport.visible region to coerce
+    */
+    this.coerceVisibleVerticalBound = function (vp) {
+      if (maxPermitedVerticalRange) {
+        if (vp.visible.centerY > maxPermitedVerticalRange.bottom) {
+          vp.visible.centerY = maxPermitedVerticalRange.bottom;
+        } else if (vp.visible.centerY < maxPermitedVerticalRange.top) {
+          vp.visible.centerY = maxPermitedVerticalRange.top;
+        }
       }
     };
 
-    /*
-    Notify all subscribers that the ongoiung animation is updated (or halted)
-    */
-    function animationUpdated(oldId, newId) {
-      for (var i = 0; i < self.onAnimationUpdated.length; i++)
-        self.onAnimationUpdated[i](oldId, newId);
-    }
+    this.updateRecentViewport = function () {
+      const vp = getViewport();
+      const { centerX, centerY, scale } = vp.visible;
 
-    /*
-    Notify all subscribers that the animation is started
-    */
-    function AnimationStarted(newId) {
-      for (var i = 0; i < self.onAnimationStarted.length; i++)
-        self.onAnimationStarted[i](newId);
-    }
+      this.recentViewport = new Viewport2d(
+        vp.aspectRatio,
+        vp.width,
+        vp.height,
+        new VisibleRegion2d(centerX, centerY, scale)
+      );
+    };
 
-    //sets visible and schedules a new call of animation step if the animation still active and needs more frames
+    this.stopAnimation = function () {
+      this.estimatedViewport = null;
+
+      if (this.activeAnimation) {
+        this.activeAnimation.isForciblyStoped = true;
+        this.activeAnimation.isActive = false;
+
+        this.animationUpdated(this.activeAnimation.ID);
+      }
+    };
+
+    // Notify all subscribers that the ongoiung animation is updated (or halted)
+    this.animationUpdated = function (oldId, newId) {
+      this.onAnimationUpdated.forEach(animation => {
+        animation(oldId, newId);
+      });
+    };
+
+    // Notify all subscribers that the animation is started
+    this.animationStarted = function (newId) {
+      this.onAnimationStarted.forEach(animation => {
+        animation(newId);
+      });
+    };
+
+    // Sets visible and schedules a new call of animation step if the animation still active and needs more frames
     this.animationStep = function (self) {
-      if (self.activeAnimation) {
-        if (self.activeAnimation.isActive)
-          window.requestAnimFrame(function () {
-            self.animationStep(self);
-          });
-        else {
-          var stopAnimationID = self.activeAnimation.ID;
+      if (this.activeAnimation) {
+        if (this.activeAnimation.isActive) {
+          window.requestAnimFrame(() => this.animationStep(this));
+        } else {
+          const id = this.activeAnimation.ID;
+          const { centerX, centerY, scale } = this.recentViewport.visible;
 
-          self.updateRecentViewport();
-          setVisible(new VisibleRegion2d(self.recentViewport.visible.centerX, self.recentViewport.visible.centerY, self.recentViewport.visible.scale)); //other components may suppose that it would be more frames by looking at activeAnimation property, so draw the last frame
-          if (!self.activeAnimation.isForciblyStoped)
-            for (var i = 0; i < self.onAnimationComplete.length; i++)
-              self.onAnimationComplete[i](stopAnimationID);
-          self.activeAnimation = undefined;
-          self.estimatedViewport = undefined;
+          this.updateRecentViewport();
+          this.setVisible(new VisibleRegion2d(centerX, centerY, scale));
+
+          if (!this.activeAnimation.isForciblyStoped) {
+            this.onAnimationComplete.forEach(animation => {
+              animation(id);
+            });
+          }
+
+          this.activeAnimation = null;
+          this.estimatedViewport = null;
+
           return;
         }
 
-        var vp = self.recentViewport;
-        if (self.viewportWidth != vp.width || self.viewportHeight != vp.height)
-          self.stopAnimation();
+        const { width, height } = this.recentViewport;
 
-        var vis = self.activeAnimation.produceNextVisible(vp);
-        setVisible(vis); //redrawing new visible region
+        if (this.viewportWidth !== width || this.viewportHeight !== height) {
+          this.stopAnimation();
+        }
+
+        this.setVisible(this.activeAnimation.produceNextVisible(this.recentViewport));
       }
 
-      this.frames++;
-      this.oneSecondFrames++;
+      this.frames += 1;
+      this.oneSecondFrames += 1;
 
-      var e = Common.vc.virtualCanvas("getLastEvent");
-      if (e != null) {
-        Common.vc.virtualCanvas("mouseMove", e);
-      }
+      // TODO: need access to virtualCanvas to call these methods
+      /*
+      const event = Common.vc.virtualCanvas('getLastEvent');
+      if (event) Common.vc.virtualCanvas('mouseMove', event);
+      */
     };
 
-    //FrameRate calculation related
-    this.frames = 0;
-    this.oneSecondFrames = 0;
-    window.setInterval(function () {
-      self.FPS = self.oneSecondFrames;
-      self.oneSecondFrames = 0;
-    }, 1000); //one call per second
+    // an animation frame enqueueing function. It is used to schedula a new animation frame
+    if (!window.requestAnimFrame) {
+      window.requestAnimFrame = callback => {
+        window.setTimeout(callback, 1000 / targetFps);
+      };
+    }
 
+    window.setInterval(() => {
+      this.FPS = this.oneSecondFrames;
+      this.oneSecondFrames = 0;
+    }, 1000);
 
-    //tests related accessors
-    this.PanViewportAccessor = PanViewport;
-
-    //preforms an elliptical zoom to the passed visible region
-    //param visible (Visible2D) a visible region to zoom into
-    //param noAnimation (bool) - method performs instant transition without any animation if true
+    // Preforms an elliptical zoom to the passed visible region
+    // Param visible (Visible2D) a visible region to zoom into
+    // Param noAnimation (bool) - method performs instant transition without any animation if true
     this.moveToVisible = function (visible, noAnimation) {
-      var currentViewport = getViewport();
-      var targetViewport = new Viewport2d(currentViewport.aspectRatio, currentViewport.width, currentViewport.height, visible);
-      var vbox = Common.viewportToViewBox(targetViewport);
-      var wnd = new VCContent.CanvasRectangle(null, null, null, vbox.left, vbox.top, vbox.width, vbox.height, null);
-
       if (noAnimation) {
-        self.stopAnimation();
-        self.setVisible(visible);
+        this.stopAnimation();
+        this.setVisible(visible);
         return;
       }
 
-      var wasAnimationActive = false;
-      var oldId = undefined;
-      if (this.activeAnimation) {
-        wasAnimationActive = this.activeAnimation.isActive;
-        oldId = this.activeAnimation.ID;
-      }
+      const wasAnimationActive = this.activeAnimation ? this.activeAnimation.isActive : false;
+      const oldId = this.activeAnimation ? this.activeAnimation.ID : null;
 
-      self.updateRecentViewport();
-      var vp = self.recentViewport;
-      this.estimatedViewport = undefined;
-      this.activeAnimation = new CZ.ViewportAnimation.EllipticalZoom(vp.visible, visible);
+      this.updateRecentViewport();
 
-      //storing size to handle window resize
-      self.viewportWidth = vp.width;
-      self.viewportHeight = vp.height;
+      this.estimatedViewport = null;
+      this.activeAnimation = new CZ.ViewportAnimation.EllipticalZoom(this.recentViewport.visible, visible);
+
+      this.viewportWidth = this.recentViewport.width;
+      this.viewportHeight = this.recentViewport.height;
 
       if (!wasAnimationActive) {
-        if (this.activeAnimation.isActive)
-          AnimationStarted(this.activeAnimation.ID);
-
-        setTimeout(function () {
-          return self.animationStep(self);
-        }, 0);
+        if (this.activeAnimation.isActive) {
+          this.animationStarted(this.activeAnimation.ID);
+        }
+        setTimeout(() => this.animationStep(self), 0);
       } else {
-        animationUpdated(oldId, this.activeAnimation.ID);
+        this.animationUpdated(oldId, this.activeAnimation.ID);
       }
 
-      return (this.activeAnimation) ? this.activeAnimation.ID : undefined;
+      return this.activeAnimation ? this.activeAnimation.ID : null;
+    };
+
+    this.gesturesSource.subscribe(gesture => {
+      if (typeof gesture !== 'undefined') {
+        const oldId = this.activeAnimation ? this.activeAnimation.ID : null;
+
+        this.updateRecentViewport();
+
+        if (gesture.Type === 'Pin') {
+          this.stopAnimation();
+          return;
+        }
+
+        if (gesture.Type === 'Pan' || gesture.Type === 'Zoom') {
+          const newViewport = this.calculateTargetViewport(this.recentViewport, gesture, this.estimatedViewport);
+
+          if (!this.estimatedViewport) {
+            this.activeAnimation = new PanZoomAnimation(this.recentViewport);
+            this.saveScreenParameters(this.recentViewport);
+          }
+
+          this.activeAnimation.velocity = gesture.Type === 'Pan'
+            ? panSpeedFactor * 0.001
+            : zoomSpeedFactor * 0.0025;
+
+
+          this.activeAnimation.setTargetViewport(newViewport);
+          this.estimatedViewport = newViewport;
+        }
+
+        if (oldId) {
+          this.animationUpdated(oldId, this.activeAnimation.ID);
+        } else {
+          this.animationStarted(this.activeAnimation.ID);
+        }
+
+        // TODO: check why do we need this if
+        // if (!this.activeAnimation)
+        this.animationStep(this);
+      }
+    });
+
+    this.updateRecentViewport();
+    this.saveScreenParameters(this.recentViewport);
+
+    //requests to stop any ongoing animation
+    this.stopAnimation = function () {
+      this.estimatedViewport = null;
+      if (this.activeAnimation) {
+        this.activeAnimation.isForciblyStoped = true;
+        this.activeAnimation.isActive = false;
+
+        this.animationUpdated(this.activeAnimation.ID, null);
+      }
     };
   }
 }

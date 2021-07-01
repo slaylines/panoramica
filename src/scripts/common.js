@@ -5,10 +5,6 @@ import Layout from './layout';
 export default class Common {
   constructor() {
     var maxPermitedScale;
-    var maxPermitedVerticalRange = {
-      top: 0,
-      bottom: 10000000
-    };
 
     var controller;
     var isAxisFreezed = true;
