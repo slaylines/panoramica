@@ -104,60 +104,64 @@ export default class Gestures {
 
   // Subject that converts input touch events into Pan gestures
   static createTouchPanSubject(vc) {
-    const touchStarts = fromEvent(vc, 'touchstart');
-    const touchMoves = fromEvent(vc, 'touchmove');
-    const touchEnds = fromEvent($(document), 'touchend');
-    const touchCancels = fromEvent($(document), 'touchcancel');
+    const $doc = $(document);
 
-    return merge( 
-      touchStarts.pipe(flatMap(touchStart =>
-        touchMoves.pipe(
-          map(touchMove => 
-            PanGesture(
-              touchMove.touches[0].pageX - touchStart.touches[0].pageX,
-              touchMove.touches[0].pageY - touchStart.touches[0].pageY,
-              'Touch'
-            )
-          ),
-          takeUntil(merge(touchEnds, touchCancels))
-        ))
-      ),
-      touchEnds.pipe(map(touchEnd => PanEndGesture('Touch')))
-    );
+    const touchStart = vc.toObservable('touchstart');
+    const touchMove = vc.toObservable('touchmove');
+    const touchEnd = $doc.toObservable('touchend');
+    const touchCancel = $doc.toObservable('touchcancel');
+
+    const gestures = touchStart.SelectMany(o => {
+      return touchMove
+        .TakeUntil(touchEnd.Merge(touchCancel))
+        .Skip(1)
+        .Zip(touchMove, (left, right) => ({
+          left: left.originalEvent,
+          right: right.originalEvent,
+        }))
+        .Where(g => g.left.scale === g.right.scale)
+        .Select(g => new PanGesture(
+          g.left.pageX - g.right.pageX,
+          g.left.pageY - g.right.pageY,
+          'Touch'
+        ));
+    });
+
+    return gestures;
   }
 
   // Subject that converts input touch events into Pin gestures
   static createTouchPinSubject(vc) {
-    const touchStarts = fromEvent(vc, 'touchstart');
+    const touchStart = vc.toObservable('touchstart');
 
-    return touchStarts.pipe(map((_) => PinGesture('Touch')));
+    return touchStart.Select(ts => new PinGesture('Touch'));
   }
 
   // Subject that converts input touch events into Zoom gestures
   static createTouchZoomSubject(vc) {
-    const gestureStarts = fromEvent(vc, 'gesturestart');
-    const gestureChanges = fromEvent(vc, 'gesturechange');
-    const gestureEnds = fromEvent($(document), 'gestureend');
-    const touchCancels = fromEvent($(document), 'touchcancel');
+    const $doc = $(document);
 
-    return gestureStarts.pipe(flatMap(gestureStart =>
-      gestureChanges.pipe(
-        map(gestureChange => {
-          const delta = gestureChange.scale / gestureStart.scale;
-          ZoomGesture(
-            gestureStart.originalEvent.layerX, 
-            gestureStart.originalEvent.layerY, 
-            1 / delta, 
-            'Touch'
-          )
-        }),
-        filter(gestureChange => 
-          gestureChange.scale !== gestureStart.scale && 
-          gestureStart.scale !== 0
-        ),
-        takeUntil(merge(gestureEnds, touchCancels))
-      ))
-    )
+    const gestureStart = vc.toObservable('gesturestart');
+    const gestureChange = vc.toObservable('gesturechange');
+    const gestureEnd = $doc.toObservable('gestureend');
+    const touchCancel = $doc.toObservable('touchcancel');
+
+    const gestures = gestureStart.SelectMany(o =>
+      gestureChange
+        .TakeUntil(gestureEnd.Merge(touchCancel))
+        .Skip(1)
+        .Zip(gestureChange, (left, right) => ({
+          left: left.originalEvent,
+          right: right.originalEvent
+        }))
+        .Where(g => g.left.scale !== g.right.scale && g.right.scale !== 0)
+        .Select(g => {
+          const delta = g.left.scale / g.right.scale;
+          return new ZoomGesture(o.originalEvent.layerX, o.originalEvent.layerY, 1 / delta, 'Touch');
+        })
+    );
+
+    return gestures;
   }
 
   // Creates gestures stream for specified jQuery element
@@ -168,9 +172,11 @@ export default class Gestures {
 
     if ('ontouchstart' in document.documentElement) {
       // webkit browser
+      /*
       panController = this.createTouchPanSubject(source);
       zoomController = this.createTouchZoomSubject(source);
       pinController = this.createTouchPinSubject(source);
+      */
     } else {
       // no touch support, only mouse events
       panController = this.createPanSubject(source);
@@ -185,10 +191,10 @@ export default class Gestures {
   static applyAxisBehavior(source) {
     return source.pipe(
       map(el => {
-        if (el.Type === 'Pan') el.yOffset = 0;
+        if (el.Type === "Pan") el.yOffset = 0;
         return el;
       }),
-      filter(el => el.Type != 'Zoom')
+      filter(el => el.Type != "Zoom")
     );
   }
 }
