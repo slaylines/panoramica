@@ -79,12 +79,15 @@ export default class Gestures {
     const mouseWheels = fromEvent(vc, 'xbrowserwheel');
     const { zoomLevelFactor } = constants;
 
-    return mouseWheels.pipe(map((mouseWheel) => ZoomGesture(
-      mouseWheel.origin.x,
-      mouseWheel.origin.y,
-      mouseWheel.delta > 0 ? 1 / zoomLevelFactor : 1 * zoomLevelFactor,
-      'Mouse'
-    )));
+    return mouseWheels.pipe(
+      map(mouseWheel => 
+        ZoomGesture(
+          mouseWheel.origin.x,
+          mouseWheel.origin.y,
+          mouseWheel.delta > 0 ? 1 / zoomLevelFactor : 1 * zoomLevelFactor,
+          'Mouse'
+      ))
+    );
   }
 
   /*********************************************************
@@ -130,18 +133,17 @@ export default class Gestures {
 
     return gestureStarts.pipe(flatMap(gestureStart =>
       gestureChanges.pipe(
-        map(gestureChange => {
-          const delta = gestureChange.scale / gestureStart.scale;
+        filter(gestureChange =>
+          (gestureChange.originalEvent.scale !== gestureStart.originalEvent.scale) &&
+          (gestureStart.originalEvent.scale !== 0)
+        ),
+        map(gestureChange =>
           ZoomGesture(
-            gestureStart.originalEvent.layerX, 
-            gestureStart.originalEvent.layerY, 
-            1 / delta, 
+            gestureStart.originalEvent.layerX,
+            gestureStart.originalEvent.layerY,
+            1 / (gestureChange.originalEvent.scale / gestureStart.originalEvent.scale),
             'Touch'
           )
-        }),
-        filter(gestureChange => 
-          gestureChange.scale !== gestureStart.scale && 
-          gestureStart.scale !== 0
         ),
         takeUntil(merge(gestureEnds, touchCancels))
       ))
