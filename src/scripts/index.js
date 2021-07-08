@@ -41,7 +41,6 @@ $(document).ready(() => {
   const allGestures = merge(canvasGestures, axisGestures);
 
   // TODO: починить скачок в конце зума
-  // TODO: доделать touch жесты
 
   const controller = new ViewportController(
     visible => {

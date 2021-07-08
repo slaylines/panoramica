@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import { fromEvent, zip, merge } from 'rxjs';
-import { skip, map, flatMap, takeUntil, tap, filter } from 'rxjs/operators';
+import { skip, map, flatMap, takeUntil, tap, filter, bufferCount } from 'rxjs/operators';
 
 import * as constants from './constants';
 import * as utils from './utils';
@@ -45,6 +45,20 @@ export default class Gestures {
 
     return mouseDowns.pipe(flatMap(mouseDown =>
       mouseMoves.pipe(
+        bufferCount(2),
+        map(([first, second]) =>
+          PanGesture(
+            second.clientX - first.clientX,
+            second.clientY - first.clientY,
+            'Mouse'
+          )
+        ),
+        takeUntil(mouseUps)
+      ))
+    );
+    /*
+    return mouseDowns.pipe(flatMap(mouseDown =>
+      mouseMoves.pipe(
         map(mouseMove =>
           PanGesture(
             mouseMove.clientX - mouseDown.clientX,
@@ -55,6 +69,7 @@ export default class Gestures {
         takeUntil(mouseUps)
       ))
     );
+    */
   }
 
   // Subject that converts input mouse events into Pin gestures
