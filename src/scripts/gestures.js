@@ -56,20 +56,6 @@ export default class Gestures {
         takeUntil(mouseUps)
       ))
     );
-    /*
-    return mouseDowns.pipe(flatMap(mouseDown =>
-      mouseMoves.pipe(
-        map(mouseMove =>
-          PanGesture(
-            mouseMove.clientX - mouseDown.clientX,
-            mouseMove.clientY - mouseDown.clientY,
-            'Mouse'
-          )
-        ),
-        takeUntil(mouseUps)
-      ))
-    );
-    */
   }
 
   // Subject that converts input mouse events into Pin gestures

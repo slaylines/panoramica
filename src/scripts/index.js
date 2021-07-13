@@ -40,15 +40,15 @@ $(document).ready(() => {
 
   const allGestures = merge(canvasGestures, axisGestures);
 
-  // TODO: починить скачок в конце зума
+  // DONE: починить скачок в конце зума
 
   const controller = new ViewportController(
     visible => {
+      updateAxis();
+
       viewport.visible.centerX = visible.centerX;
       viewport.visible.centerY = visible.centerY;
       viewport.visible.scale = visible.scale;
-
-      updateAxis();
     },
     () => viewport,
     allGestures,
