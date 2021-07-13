@@ -51,6 +51,7 @@ $(document).ready(() => {
       updateAxis();
     },
     () => viewport,
-    allGestures
+    allGestures,
+    $vc
   );
 });
