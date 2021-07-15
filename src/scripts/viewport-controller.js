@@ -15,7 +15,7 @@ import { PanZoomAnimation } from './viewport-animation';
 //@param gestureSource (merged RX gesture stream)   an RX stream of gestures described in gestures.js
 
 export default class ViewportController {
-  constructor(setVisible, getViewport, gesturesSource) {
+  constructor(setVisible, getViewport, gesturesSource, vc) {
     //currently running animation. undefined if no animation active
     this.activeAnimation;
 
@@ -306,11 +306,9 @@ export default class ViewportController {
       this.frames += 1;
       this.oneSecondFrames += 1;
 
-      // TODO: need access to virtualCanvas to call these methods
-      /*
-      const event = Common.vc.virtualCanvas('getLastEvent');
-      if (event) Common.vc.virtualCanvas('mouseMove', event);
-      */
+      // DONE: need access to virtualCanvas to call these methods 
+      const event = vc.virtualCanvas('getLastEvent');
+      if (event != null) vc.virtualCanvas("mouseMove", event);
     };
 
     // an animation frame enqueueing function. It is used to schedula a new animation frame
@@ -393,6 +391,7 @@ export default class ViewportController {
         }
 
         // TODO: check why do we need this if
+        // in original, skip on first step of gestures DO NOT KNOW WHY
         // if (!this.activeAnimation)
         this.animationStep(this);
       }
