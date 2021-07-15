@@ -54,4 +54,9 @@ $(document).ready(() => {
     () => viewport,
     allGestures
   );
+
+  $(window).on('resize', () => {
+    updateAxis();
+  });
+
 });
