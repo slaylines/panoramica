@@ -25,23 +25,23 @@ $(document).ready(() => {
   const visibleRegion = new VisibleRegion2d(-1000, 0, 1000);
   const viewport = new Viewport2d(1, $vc[0].clientWidth, $vc[0].clientHeight, visibleRegion);
 
-  const updateAxis = () => {
+  const updateAxis = (initial) => {
     const lt = viewport.pointScreenToVirtual(0, 0);
     const rb = viewport.pointScreenToVirtual(viewport.width, viewport.height);
 
     axis.update({ min: lt.x, max: rb.x });
-    axis.updateMarker(viewport);
+
+    if (!initial) {
+      axis.updateMarker(viewport);
+    }
   }
 
-  updateAxis();
+  updateAxis(true);
 
   const canvasGestures = Gestures.getGesturesStream($vc);
   const axisGestures = Gestures.applyAxisBehavior(Gestures.getGesturesStream($axis));
 
   const allGestures = merge(canvasGestures, axisGestures);
-
-  // TODO: починить скачок в конце зума
-  // TODO: доделать touch жесты
 
   const controller = new ViewportController(
     visible => {
@@ -52,6 +52,12 @@ $(document).ready(() => {
       updateAxis();
     },
     () => viewport,
-    allGestures
+    allGestures,
+    $vc
   );
+
+  $(window).on('resize', () => {
+    updateAxis();
+  });
+
 });

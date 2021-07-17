@@ -68,9 +68,9 @@ export default class Axis {
     this.container.addClass(['cz-timescale', 'unselectable']);
     this.labelsDiv.addClass('cz-timescale-labels-container');
 
-    let marker = $("<div id='timescale_marker' class='cz-timescale-marker'></div>");
-    let markerText = $("<div id='marker-text' class='cz-timescale-marker-text'></div>");
-    let markerTriangle = $("<div id='marker-triangle' class='cz-timescale-marker-triangle'></div>");
+    const marker = $("<div id='timescale_marker' class='cz-timescale-marker'></div>");
+    const markerText = $("<div id='marker-text' class='cz-timescale-marker-text'></div>");
+    const markerTriangle = $("<div id='marker-triangle' class='cz-timescale-marker-triangle'></div>");
 
     marker[0].appendChild(markerText[0]);
     marker[0].appendChild(markerTriangle[0]);
@@ -104,20 +104,20 @@ export default class Axis {
     /*
      * Renders marker.
     */
-    this.setTimeMarker = (time, vcGesture) => {
-      if (typeof vcGesture === 'undefined') vcGesture = false;
-
-      if (!mouse_clicked && (!vcGesture || (vcGesture && !mouse_hovered))) {
-        if (time > constants.maxPermitedTimeRange.right) time = constants.maxPermitedTimeRange.right;
-        if (time < constants.maxPermitedTimeRange.left) time = constants.maxPermitedTimeRange.left;
+    this.setTimeMarker = (time) => {
+      if (!mouse_clicked) {
+        time = Math.min(time, constants.maxPermitedTimeRange.right);
+        time = Math.max(time, constants.maxPermitedTimeRange.left);
 
         const k = (this.range.max - this.range.min) / this.width;
         const point = (time - this.range.max) / k + this.width;
         const text = this.tickSources[this.mode].getMarkerLabel(this.range, time);
 
         this.markerPosition = point;
+
         markerText.text(text);
-        marker.css('left', point - marker.width() / 2);
+        marker.css('transform', `translateX(${this.markerPosition - marker.width() / 2}px`);
+        marker.css('visibility', 'visible');
       }
     };
 
