@@ -271,16 +271,23 @@ export default class ViewportController {
     };
 
     // Sets visible and schedules a new call of animation step if the animation still active and needs more frames
-    this.animationStep = function (self) {
+    this.animationStep = function() {
       if (this.activeAnimation) {
+        const { width, height } = this.recentViewport;
+
+        if (this.viewportWidth !== width || this.viewportHeight !== height) {
+          this.stopAnimation();
+        }
+
+        this.setVisible(this.activeAnimation.produceNextVisible(this.recentViewport));
+
         if (this.activeAnimation.isActive) {
-          window.requestAnimFrame(() => this.animationStep(this));
+          window.requestAnimFrame(() => this.animationStep());
         } else {
           const id = this.activeAnimation.ID;
           const { centerX, centerY, scale } = this.recentViewport.visible;
 
           this.updateRecentViewport();
-          this.setVisible(new VisibleRegion2d(centerX, centerY, scale));
 
           if (!this.activeAnimation.isForciblyStoped) {
             this.onAnimationComplete.forEach(animation => {
@@ -290,28 +297,16 @@ export default class ViewportController {
 
           this.activeAnimation = null;
           this.estimatedViewport = null;
-
-          return;
         }
-
-        const { width, height } = this.recentViewport;
-
-        if (this.viewportWidth !== width || this.viewportHeight !== height) {
-          this.stopAnimation();
-        }
-
-        this.setVisible(this.activeAnimation.produceNextVisible(this.recentViewport));
       }
 
       this.frames += 1;
       this.oneSecondFrames += 1;
 
-      // DONE: need access to virtualCanvas to call these methods 
       const event = vc.virtualCanvas('getLastEvent');
       if (event != null) vc.virtualCanvas("mouseMove", event);
     };
 
-    // an animation frame enqueueing function. It is used to schedula a new animation frame
     if (!window.requestAnimFrame) {
       window.requestAnimFrame = callback => {
         window.setTimeout(callback, 1000 / targetFps);
@@ -348,7 +343,7 @@ export default class ViewportController {
         if (this.activeAnimation.isActive) {
           this.animationStarted(this.activeAnimation.ID);
         }
-        setTimeout(() => this.animationStep(self), 0);
+        setTimeout(() => this.animationStep(), 0);
       } else {
         this.animationUpdated(oldId, this.activeAnimation.ID);
       }
@@ -376,9 +371,8 @@ export default class ViewportController {
           }
 
           this.activeAnimation.velocity = gesture.Type === 'Pan'
-            ? panSpeedFactor * 0.001
-            : zoomSpeedFactor * 0.0025;
-
+            ? panSpeedFactor
+            : zoomSpeedFactor;
 
           this.activeAnimation.setTargetViewport(newViewport);
           this.estimatedViewport = newViewport;
@@ -390,10 +384,7 @@ export default class ViewportController {
           this.animationStarted(this.activeAnimation.ID);
         }
 
-        // TODO: check why do we need this if
-        // in original, skip on first step of gestures DO NOT KNOW WHY
-        // if (!this.activeAnimation)
-        this.animationStep(this);
+        this.animationStep();
       }
     });
 

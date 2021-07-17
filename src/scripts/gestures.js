@@ -81,7 +81,7 @@ export default class Gestures {
     const { zoomLevelFactor } = constants;
 
     return mouseWheels.pipe(
-      map(mouseWheel => 
+      map(mouseWheel =>
         ZoomGesture(
           mouseWheel.origin.x,
           mouseWheel.origin.y,

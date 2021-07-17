@@ -77,44 +77,50 @@ export function PanZoomAnimation(startViewport) {
 
   //returns the viewport visible to be set on the next animation frame
   this.produceNextVisible = function (currentViewport) {
-      //determining current state of the viewport
-      var currentCenterInSC = this.startViewport.pointVirtualToScreen(currentViewport.visible.centerX, currentViewport.visible.centerY);
-      var currScale = currentViewport.visible.scale;
+      const { visible } = this.startViewport;
 
-      var startVisible = this.startViewport.visible;
+      const now = new Date();
+      const timeDiff = now.getTime() - this.prevFrameTime.getTime();
+      const k = this.velocity * timeDiff;
 
-      var curTime = new Date();
-      var timeDiff = curTime.getTime() - this.prevFrameTime.getTime();
-      var k = this.velocity * timeDiff;
+      let dx = this.endCenterInSC.x - this.previousFrameCenterInSC.x;
+      let dy = this.endCenterInSC.y - this.previousFrameCenterInSC.y;
 
-      var dx = this.endCenterInSC.x - this.previousFrameCenterInSC.x;
-      var dy = this.endCenterInSC.y - this.previousFrameCenterInSC.y;
+      const curDist = Math.max(1.0, Math.sqrt(dx * dx + dy * dy));
 
-      var curDist = Math.max(1.0, Math.sqrt(dx * dx + dy * dy));
+      // Updating previous frame info. This will be returned as the requested animation frame
+      const prevFrameVisible = this.previousFrameViewport.visible;
+      const updatedVisible = new VisibleRegion2d(
+        prevFrameVisible.centerX,
+        prevFrameVisible.centerY,
+        prevFrameVisible.scale
+      );
 
-      //updating previous frame info. This will be returned as the requested animation frame
-      var prevFrameVisible = this.previousFrameViewport.visible;
-      var updatedVisible = new VisibleRegion2d(prevFrameVisible.centerX, prevFrameVisible.centerY, prevFrameVisible.scale);
+      this.prevFrameTime = now;
       this.previousFrameCenterInSC.x += curDist * k * this.direction.X;
       this.previousFrameCenterInSC.y += curDist * k * this.direction.Y;
-      updatedVisible.scale += (this.estimatedEndViewport.visible.scale - updatedVisible.scale) * k;
-      this.prevFrameTime = curTime;
 
-      //calculating distance to the start point of the animation
+      updatedVisible.scale += (this.estimatedEndViewport.visible.scale - updatedVisible.scale) * k;
+
+      // Calculating distance to the start point of the animation
       dx = this.previousFrameCenterInSC.x - this.startCenterInSC.x;
       dy = this.previousFrameCenterInSC.y - this.startCenterInSC.y;
 
-      var distToStart = Math.sqrt(dx * dx + dy * dy);
-      var scaleDistToStart = this.estimatedEndViewport.visible.scale - startVisible.scale;
-      var scaleDistCurrent = updatedVisible.scale - startVisible.scale;
-      if ((distToStart >= this.pathLeng) || Math.abs(scaleDistCurrent) > Math.abs(scaleDistToStart)) {
-          //we have reach the target visible. stop
-          this.isActive = false;
-          return this.estimatedEndViewport.visible;
-      }
-      ;
+      const distToStart = Math.sqrt(dx * dx + dy * dy);
 
-      var virtPoint = this.startViewport.pointScreenToVirtual(this.previousFrameCenterInSC.x, this.previousFrameCenterInSC.y);
+      const scaleDistToStart = this.estimatedEndViewport.visible.scale - visible.scale;
+      const scaleDistCurrent = updatedVisible.scale - visible.scale;
+
+      if ((distToStart >= this.pathLeng) || Math.abs(scaleDistCurrent) > Math.abs(scaleDistToStart)) {
+        // We have reach the target visible — stop
+        this.isActive = false;
+        return this.estimatedEndViewport.visible;
+      }
+
+      const virtPoint = this.startViewport.pointScreenToVirtual(
+        this.previousFrameCenterInSC.x,
+        this.previousFrameCenterInSC.y
+      );
 
       updatedVisible.centerX = virtPoint.x;
       updatedVisible.centerY = virtPoint.y;

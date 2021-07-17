@@ -156,13 +156,6 @@ export default class Common {
     }
   }
 
-  updateMarker() {
-    axis.setTimeMarker(
-      vc.virtualCanvas('getCursorPosition'),
-      true
-    );
-  }
-
   viewportToViewBox(vp) {
     var w = vp.widthScreenToVirtual(vp.width);
     var h = vp.heightScreenToVirtual(vp.height);
@@ -192,17 +185,6 @@ export default class Common {
     this.updateAxis(this.vc, this.ax);
 
     //CZ.BreadCrumbs.updateBreadCrumbsLabels();
-  }
-
-  updateAxis(vc, ax) {
-    var vp = this.vc.virtualCanvas('getViewport');
-    var lt = vp.pointScreenToVirtual(0, 0);
-    var rb = vp.pointScreenToVirtual(vp.width, vp.height);
-    var newrange = {
-      min: lt.x,
-      max: rb.x
-    };
-    this.axis.update(newrange);
   }
 
   isInCosmos(url) {
