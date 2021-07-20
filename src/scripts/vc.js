@@ -406,7 +406,6 @@ export default function VirtualCanvas() {
         }
       });
 
-      // TODO: magic numbers — update canvas width and height
       //this.canvasWidth = Common.vc.width();
       //this.canvasHeight = Common.vc.height();
 

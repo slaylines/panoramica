@@ -41,9 +41,14 @@ $(document).ready(() => {
     root.beginEdit();
     layout.mergeLayouts(data, root);
     root.endEdit(true);
+
+    window.maxPermitedVerticalRange = {
+      top: data.y,
+      bottom: data.y + data.height
+    }
   }
 
-  const visibleRegion = new VisibleRegion2d(0, 0, 25000000);
+  const visibleRegion = new VisibleRegion2d(-6850000000, 0, 17000000);
   const viewport = new Viewport2d(1, $vc[0].clientWidth, $vc[0].clientHeight, visibleRegion);
 
   const updateAxis = (initial) => {

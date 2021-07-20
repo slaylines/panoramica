@@ -1487,8 +1487,7 @@ class CanvasRectangle extends CanvasElement {
       var bottom = Math.min(viewport2d.height, p2.y);
       if (left < right && top < bottom) {
         if (this.settings.fillStyle) {
-          var opacity1 = this.settings.gradientOpacity ? opacity * (1 - this.settings.gradientOpacity) : opacity;
-          ctx.globalAlpha = opacity1;
+          ctx.globalAlpha = this.settings.gradientOpacity ? opacity * (1 - this.settings.gradientOpacity) : opacity;
           ctx.fillStyle = this.settings.fillStyle;
           ctx.fillRect(left, top, right - left, bottom - top);
 

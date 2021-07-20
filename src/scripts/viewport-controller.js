@@ -224,11 +224,13 @@ export default class ViewportController {
       @param vp (Viewport) the viewport.visible region to coerce
     */
     this.coerceVisibleVerticalBound = function (vp) {
-      if (maxPermitedVerticalRange) {
-        if (vp.visible.centerY > maxPermitedVerticalRange.bottom) {
-          vp.visible.centerY = maxPermitedVerticalRange.bottom;
-        } else if (vp.visible.centerY < maxPermitedVerticalRange.top) {
-          vp.visible.centerY = maxPermitedVerticalRange.top;
+      const maxRange = window.maxPermitedVerticalRange || maxPermitedVerticalRange;
+
+      if (maxRange) {
+        if (vp.visible.centerY > maxRange.bottom) {
+          vp.visible.centerY = maxRange.bottom;
+        } else if (vp.visible.centerY < maxRange.top) {
+          vp.visible.centerY = maxRange.top;
         }
       }
     };
