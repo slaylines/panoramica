@@ -4,6 +4,7 @@ require('jquery-ui');
 
 import * as constants from './constants';
 import * as dates from './dates';
+import * as utils from './utils';
 import Layout from './layout';
 
 import Common from './common';
@@ -1076,7 +1077,7 @@ export class VCContent {
       /* Checks whether the given point (virtual) is inside the object
       (should take into account the shape) */
       this.isInside = function (point_v) {
-        var len2 = CZ.Common.sqr(point_v.x - this.x - (this.width / 2)) + CZ.Common.sqr(point_v.y - this.y - (this.height / 2));
+        var len2 = utils.sqr(point_v.x - this.x - (this.width / 2)) + utils.sqr(point_v.y - this.y - (this.height / 2));
         var rad = this.width / 2.0;
         return len2 <= rad * rad;
       };
@@ -2189,7 +2190,7 @@ class CanvasCircle {
     /* Checks whether the given point (virtual) is inside the object
     (should take into account the shape) */
     this.isInside = function (point_v) {
-      var len2 = CZ.Common.sqr(point_v.x - vxc) + CZ.Common.sqr(point_v.y - this.y - this.height / 2);
+      var len2 = utils.sqr(point_v.x - vxc) + utils.sqr(point_v.y - this.y - this.height / 2);
       return len2 <= vradius * vradius;
     };
 
@@ -2715,10 +2716,10 @@ class CanvasScrollTextItem {
       class: "contentItemDescription"
     }).appendTo(vc);
 
-    elem[0].addEventListener("mousemove", CZ.Common.preventbubble, false);
-    elem[0].addEventListener("mousedown", CZ.Common.preventbubble, false);
-    elem[0].addEventListener("DOMMouseScroll", CZ.Common.preventbubble, false);
-    elem[0].addEventListener("mousewheel", CZ.Common.preventbubble, false);
+    elem[0].addEventListener("mousemove", utils.preventBubble, false);
+    elem[0].addEventListener("mousedown", utils.preventBubble, false);
+    elem[0].addEventListener("DOMMouseScroll", utils.preventBubble, false);
+    elem[0].addEventListener("mousewheel", utils.preventBubble, false);
     var textElem = $("<div style='position:relative;' class='text'></div>");
     textElem.html(marked(text)).appendTo(elem);
 
@@ -2735,11 +2736,11 @@ class CanvasScrollTextItem {
 
     this.onRemove = function () {
       this.prototype.onRemove.call(this);
-      elem[0].removeEventListener("mousemove", CZ.Common.preventbubble, false);
-      elem[0].removeEventListener("mouseup", CZ.Common.preventbubble, false);
-      elem[0].removeEventListener("mousedown", CZ.Common.preventbubble, false);
-      elem[0].removeEventListener("DOMMouseScroll", CZ.Common.preventbubble, false);
-      elem[0].removeEventListener("mousewheel", CZ.Common.preventbubble, false);
+      elem[0].removeEventListener("mousemove", utils.preventBubble, false);
+      elem[0].removeEventListener("mouseup", utils.preventBubble, false);
+      elem[0].removeEventListener("mousedown", utils.preventBubble, false);
+      elem[0].removeEventListener("DOMMouseScroll", utils.preventBubble, false);
+      elem[0].removeEventListener("mousewheel", utils.preventBubble, false);
       elem = undefined;
     };
 

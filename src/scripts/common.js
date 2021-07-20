@@ -43,18 +43,7 @@ export default class Common {
 
     var width;
 
-    //var initialize = initialize;
-
     Object.defineProperties(this, {
-      /*vc: {
-      	configurable: false,
-      	get: function () {
-      		return vc;
-      	},
-      	set: function (value) {
-      		vc = value;
-      	}
-      },*/
       startHash: {
         configurable: false,
         get: function () {
@@ -74,42 +63,6 @@ export default class Common {
         }
       }
     });
-  }
-  /* Calculates local offset of mouse cursor in specified jQuery element.
-    @param jqelement  (JQuery to Dom element) jQuery element to get local offset for.
-    @param event   (Mouse event args) mouse event args describing mouse cursor.
-    */
-  getXBrowserMouseOrigin(jqelement, event) {
-    var offsetX;
-
-    ///if (!event.offsetX)
-    offsetX = event.pageX - jqelement[0].offsetLeft;
-
-    //else
-    //    offsetX = event.offsetX;
-    var offsetY;
-
-    //if (!event.offsetY)
-    offsetY = event.pageY - jqelement[0].offsetTop;
-
-    //else
-    //    offsetY = event.offsetY;
-    return {
-      x: offsetX,
-      y: offsetY,
-    };
-  }
-
-  sqr(d) {
-    return d * d;
-  }
-
-  // Prevents the event from bubbling.
-  // In non IE browsers, use e.stopPropagation() instead.
-  // To cancel event bubbling across browsers, you should check for support for e.stopPropagation(), and proceed accordingly:
-  preventbubble(e) {
-    if (e && e.stopPropagation) e.stopPropagation();
-    else e.cancelBubble = true;
   }
 
   toggleOffImage(elemId, ext) {
@@ -134,10 +87,6 @@ export default class Common {
     }
   }
 
-  showFooter() {
-    $('#footerBack').show('clip', {}, 'slow');
-  }
-
   // Compares 2 visibles. Returns true if they are equal with an allowable imprecision
   compareVisibles(vis1, vis2) {
     return vis2 != null ?
@@ -148,12 +97,6 @@ export default class Common {
       Math.abs(vis1.scale - vis2.scale) <
       constants.allowedVisibileImprecision :
       false;
-  }
-
-  setVisible(visible) {
-    if (visible) {
-      return controller.moveToVisible(visible);
-    }
   }
 
   viewportToViewBox(vp) {
@@ -176,29 +119,8 @@ export default class Common {
   //Common.viewportToViewBox = viewportToViewBox;
 
   updateLayout() {
-    //CZ.BreadCrumbs.visibleAreaWidth = $('.breadcrumbs-container').width();
-    //CZ.BreadCrumbs.updateHiddenBreadCrumbs();
-
     this.vc.virtualCanvas('updateViewport');
 
-    //ax.axis("updateWidth");
     this.updateAxis(this.vc, this.ax);
-
-    //CZ.BreadCrumbs.updateBreadCrumbsLabels();
-  }
-
-  isInCosmos(url) {
-    if (typeof url != 'string') url = window.location.pathname;
-
-    var path = url.toLowerCase().replace('/czmin', '').split('#')[0];
-    var matches = [
-      '/',
-      '/chronozoom',
-      '/chronozoom/',
-      '/chronozoom/cosmos',
-      '/chronozoom/cosmos/',
-    ];
-
-    return $.inArray(path, matches) > -1;
   }
 }

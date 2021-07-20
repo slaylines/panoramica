@@ -34,9 +34,14 @@ $(document).ready(() => {
     if (!initial) {
       axis.updateMarker(viewport);
     }
-  }
+  };
+
+  const updateVC = () => {
+    $vc.virtualCanvas('setVisible', viewport.visible, (controller || {}).activeAnimation);
+  };
 
   updateAxis(true);
+  updateVC();
 
   const canvasGestures = Gestures.getGesturesStream($vc);
   const axisGestures = Gestures.applyAxisBehavior(Gestures.getGesturesStream($axis));
@@ -50,6 +55,7 @@ $(document).ready(() => {
       viewport.visible.scale = visible.scale;
 
       updateAxis();
+      updateVC();
     },
     () => viewport,
     allGestures,
