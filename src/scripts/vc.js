@@ -85,8 +85,10 @@ export default function VirtualCanvas() {
         this.layers.push($(this.element));
       });
 
+      this.layout = null;
+
       this.layersContent = new CanvasRootElement(
-        self, undefined, '__root__',
+        this, undefined, '__root__',
         -Infinity, -Infinity, Infinity, Infinity
       );
 
@@ -329,6 +331,8 @@ export default function VirtualCanvas() {
       this.lastEvent = event;
     },
 
+    setLayout: function (layout) { this.layout = layout; },
+
     getLastEvent: function () { return this.lastEvent; },
     getLayerContent: function () { return this.layersContent; },
 
@@ -485,10 +489,10 @@ export default function VirtualCanvas() {
       this.requestNewFrame = false;
 
       // update parameters of animating elements and require new frame if needed
-      if (!Layout.animatingElements.length) {
-        for (let id in Layout.animatingElements)
-          if (Layout.animatingElements[id].animation && Layout.animatingElements[id].animation.isAnimating) {
-            Layout.animatingElements[id].calculateNewFrame();
+      if (!this.layout.animatingElements.length) {
+        for (let id in this.layout.animatingElements)
+          if (this.layout.animatingElements[id].animation && this.layout.animatingElements[id].animation.isAnimating) {
+            this.layout.animatingElements[id].calculateNewFrame();
             this.requestNewFrame = true;
           }
       }

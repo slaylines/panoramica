@@ -1,17 +1,15 @@
 import * as constants from './constants';
 import * as dates from './dates';
-import Viewport from './viewport'
-import VCContent from './vccontent'
+import { VisibleRegion2d } from './viewport';
+import { VCContent, CanvasRootElement, addTimeline } from './vccontent';
+import { animationEase } from './viewport-animation';
 
 export default class Layout {
   constructor() {
     var isLayoutAnimation = true;
 
-    Layout.animatingElements = {
-      length: 0,
-    };
-
-    Layout.timelineHeightRate = 0.4;
+    this.animatingElements = { length: 0 };
+    this.timelineHeightRate = 0.4;
 
     function Timeline(title, left, right, childTimelines, exhibits) {
       this.Title = title;
@@ -40,11 +38,6 @@ export default class Layout {
       if (timeline.exhibits instanceof Array) {
         timeline.exhibits.forEach(function (exhibit) {
           exhibit.x = dates.getCoordinateFromDecimalYear(exhibit.time);
-
-          exhibit.contentItems.forEach(function (contentItem) {
-            // For content items that contain an extension, activate it.
-            CZ.Extensions.activateExtension(contentItem.mediaType);
-          });
         });
       }
 
@@ -56,6 +49,7 @@ export default class Layout {
       }
 
       GenerateAspect(timeline);
+
       if (timeline.Height) timeline.Height /= 100;
       else if (!timeline.AspectRatio && !timeline.Height)
         timeline.Height = Layout.timelineHeightRate;
@@ -66,8 +60,7 @@ export default class Layout {
     }
 
     function LayoutTimeline(timeline, parentWidth, measureContext) {
-      var headerPercent =
-        constants.timelineHeaderSize + 2 * constants.timelineHeaderMargin;
+      var headerPercent = constants.timelineHeaderSize + 2 * constants.timelineHeaderMargin;
       var timelineWidth = timeline.right - timeline.left;
       timeline.width = timelineWidth;
 
@@ -708,7 +701,7 @@ export default class Layout {
     function Convert(parent, timeline) {
       //Creating timeline
       var tlColor = GetTimelineColor(timeline);
-      var t1 = CZ.VCContent.addTimeline(
+      var t1 = addTimeline(
         parent,
         'layerTimelines',
         't' + timeline.id,
@@ -723,7 +716,7 @@ export default class Layout {
           fillStyle: 'rgba(0,0,0,0.25)',
           titleRect: timeline.titleRect,
           strokeStyle: tlColor,
-          regime: timeline.Regime,
+          regime: timeline.regime,
           endDate: timeline.endDate,
           FromIsCirca: timeline.FromIsCirca || false,
           ToIsCirca: timeline.ToIsCirca || false,
@@ -747,7 +740,7 @@ export default class Layout {
             }
           }
 
-          var infodot1 = CZ.VCContent.addInfodot(
+          var infodot1 = VCContent.addInfodot(
             t1,
             'layerInfodots',
             'e' + childInfodot.id,
@@ -777,15 +770,15 @@ export default class Layout {
     }
 
     function GetTimelineColor(timeline) {
-      if (timeline.Regime == 'Cosmos') {
+      if (timeline.regime == 'Cosmos') {
         return 'rgba(152, 108, 157, 1.0)';
-      } else if (timeline.Regime == 'Earth') {
+      } else if (timeline.regime == 'Earth') {
         return 'rgba(81, 127, 149, 1.0)';
-      } else if (timeline.Regime == 'Life') {
+      } else if (timeline.regime == 'Life') {
         return 'rgba(73, 150, 73, 1.0)';
-      } else if (timeline.Regime == 'Pre-history') {
+      } else if (timeline.regime == 'Pre-history') {
         return 'rgba(237, 145, 50, 1.0)';
-      } else if (timeline.Regime == 'Humanity') {
+      } else if (timeline.regime == 'Humanity') {
         return 'rgba(212, 92, 70, 1.0)';
       } else {
         // Return null to allow the settings configuration to choose color.
@@ -823,7 +816,7 @@ export default class Layout {
         var width = timeline.right - timeline.left;
         var scaleX = (vp.visible.scale * width) / vp.width;
         var scaleY = (vp.visible.scale * timeline.height) / vp.height;
-        return new CZ.Viewport.VisibleRegion2d(
+        return new VisibleRegion2d(
           timeline.left + (timeline.right - timeline.left) / 2.0,
           timeline.y + timeline.height / 2.0,
           Math.max(scaleX, scaleY)
@@ -837,22 +830,18 @@ export default class Layout {
       root.endEdit(true);
     }
 
-    function Load(root, timeline) {
+    const Load = function (root, timeline) {
       if (timeline) {
-        //Transform timeline start and end dates
         Prepare(timeline);
-        //Measure child content for each timiline in tree
-        var measureContext = document.createElement('canvas').getContext('2d');
-        LayoutTimeline(timeline, 0, measureContext);
 
-        //Calculating final placement of the data
+        const measureContext = document.createElement('canvas').getContext('2d');
+
+        LayoutTimeline(timeline, 0, measureContext);
         Arrange(timeline, measureContext);
 
-        //Load timline to Virtual Canvas
         LoadTimeline(root, timeline);
       }
     }
-    Layout.Load = Load;
 
     /*
     ---------------------------------------------------------------------------
@@ -861,23 +850,21 @@ export default class Layout {
     */
     // takes a metadata timeline (FromTimeUnit, FromYear, FromMonth, FromDay, ToTimeUnit, ToYear, ToMonth, ToDay)
     // and returns a corresponding scenegraph (x, y, width, height)
-    // todo: remove dependency on virtual canvas (vc)
     function generateLayout(tmd, tsg) {
       try {
-        if (!tmd.AspectRatio) tmd.height = tsg.height;
-        var root = new CZ.VCContent.CanvasRootElement(
-          tsg.vc,
-          undefined,
-          '__root__',
-          -Infinity,
-          -Infinity,
-          Infinity,
-          Infinity
+        if (!tmd.AspectRatio) {
+          tmd.height = tsg.height;
+        }
+
+        const root = new CanvasRootElement(
+          tsg.vc, undefined, '__root__',
+          -Infinity, -Infinity, Infinity, Infinity
         );
+
         Load(root, tmd);
         return root.children[0];
       } catch (msg) {
-        console.log("exception in [nikita's layout]: " + msg);
+        console.log(msg);
       }
     }
 
@@ -1032,7 +1019,7 @@ export default class Layout {
         //projecting current time to the [0;1] interval of the animation parameter
         else t = 1.0;
 
-        t = CZ.ViewportAnimation.animationEase(t);
+        t = animationEase(t);
 
         for (var i = 0; i < args.length; i++) {
           if (typeof elem[args[i].property] !== 'undefined')
@@ -1228,26 +1215,24 @@ export default class Layout {
       }
     }
 
-    function Merge(src, dest) {
-      // skip dynamic layout during active authoring session
-      if (typeof CZ.Authoring !== 'undefined' && CZ.Authoring.isActive) return;
+    this.mergeLayouts = function (src, dest) {
+      if (!src || !dest) return;
 
-      if (src && dest) {
-        if (dest.id === '__root__') {
-          src.AspectRatio = src.aspectRatio || 10;
-          var t = generateLayout(src, dest);
-          convertRelativeToAbsoluteCoords(t, 0);
-          dest.children.push(t);
-          animateElement(dest);
-          CZ.Common.vc.virtualCanvas('requestInvalidate');
-        } else {
-          merge(src, dest);
-          dest.newHeight += dest.delta;
-          animateElement(dest);
-          CZ.Common.vc.virtualCanvas('requestInvalidate');
-        }
+      if (dest.id === '__root__') {
+        src.AspectRatio = src.aspectRatio || 10;
+
+        const layout = generateLayout(src, dest);
+
+        convertRelativeToAbsoluteCoords(layout, 0);
+        dest.children.push(layout);
+        // animateElement(dest);
+        // vc.virtualCanvas('requestInvalidate');
+      } else {
+        merge(src, dest);
+        dest.newHeight += dest.delta;
+        // animateElement(dest);
+        // vc.virtualCanvas('requestInvalidate');
       }
     }
-    Layout.Merge = Merge;
   }
 }

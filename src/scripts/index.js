@@ -7,7 +7,7 @@ import Axis from './axis';
 import VirtualCanvas from './vc';
 import Gestures from './gestures';
 import ViewportController from './viewport-controller';
-
+import Layout from './layout';
 import { VisibleRegion2d, Viewport2d } from './viewport';
 
 $(document).ready(() => {
@@ -19,10 +19,31 @@ $(document).ready(() => {
 
   const $vc = $('#vc');
 
+  const layout = new Layout();
+
   VirtualCanvas();
   $vc.virtualCanvas();
+  $vc.virtualCanvas('setLayout', layout);
 
-  const visibleRegion = new VisibleRegion2d(-1000, 0, 1000);
+  const loadData = () => {
+    const data = {
+      id: "00000000-0000-0000-0000-000000000000",
+      start: -13800000000,
+      end: 9999,
+      title: 'Cosmos',
+      regime: 'Cosmos',
+      exhibits: [],
+      timelines: [],
+    };
+
+    const root = $vc.virtualCanvas('getLayerContent');
+
+    root.beginEdit();
+    layout.mergeLayouts(data, root);
+    root.endEdit(true);
+  }
+
+  const visibleRegion = new VisibleRegion2d(0, 0, 25000000);
   const viewport = new Viewport2d(1, $vc[0].clientWidth, $vc[0].clientHeight, visibleRegion);
 
   const updateAxis = (initial) => {
@@ -39,6 +60,8 @@ $(document).ready(() => {
   const updateVC = () => {
     $vc.virtualCanvas('setVisible', viewport.visible, (controller || {}).activeAnimation);
   };
+
+  loadData();
 
   updateAxis(true);
   updateVC();
