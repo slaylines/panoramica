@@ -30,7 +30,7 @@ $(document).ready(() => {
       id: "00000000-0000-0000-0000-000000000000",
       start: -13800000000,
       end: 9999,
-      title: 'Cosmos',
+      title: 'Data',
       regime: 'Cosmos',
       exhibits: [],
       timelines: [],

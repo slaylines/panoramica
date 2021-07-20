@@ -72,8 +72,7 @@ const render = (element, contexts, visibleBox_v, viewport2d, opacity) => {
     if (element.onIsRenderedChanged) element.onIsRenderedChanged();
   }
 
-  // TODO: contexts[element.layerid] ???
-  element.render(contexts['vc'], visibleBox_v, viewport2d, sz, opacity);
+  element.render(contexts[element.layerid], visibleBox_v, viewport2d, sz, opacity);
 
   element.children.forEach(child => {
     render(child, contexts, visibleBox_v, viewport2d, opacity);
@@ -1481,6 +1480,7 @@ class CanvasRectangle extends CanvasElement {
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
       var p = viewport2d.pointVirtualToScreen(this.x, this.y);
       var p2 = viewport2d.pointVirtualToScreen(this.x + this.width, this.y + this.height);
+
       var left = Math.max(0, p.x);
       var top = Math.max(0, p.y);
       var right = Math.min(viewport2d.width, p2.x);
@@ -1588,7 +1588,7 @@ class CanvasRectangle extends CanvasElement {
 @param vh   (number) height of a bounding box in virtual space
 @param settings  ({strokeStyle,lineWidth,fillStyle}) Parameters of the rectangle appearance
 */
-class CanvasTimeline extends CanvasElement {
+class CanvasTimeline extends CanvasRectangle {
   constructor(vc, layerid, id, vx, vy, vw, vh, settings, timelineinfo) {
     super(vc, layerid, id, vx, vy, vw, vh, settings);
 
@@ -1624,6 +1624,14 @@ class CanvasTimeline extends CanvasElement {
     var marginTop = timelineinfo.titleRect ? timelineinfo.titleRect.marginTop : (1 - constants.timelineHeaderMargin) * timelineinfo.height - headerSize;
     var baseline = timelineinfo.top + marginTop + headerSize / 2.0;
 
+    this.titleObject = addText(this, layerid, id + '__header__', timelineinfo.timeStart + marginLeft, timelineinfo.top + marginTop, baseline, headerSize, timelineinfo.header, {
+      fontName: constants.timelineHeaderFontName,
+      fillStyle: constants.timelineHeaderFontColor,
+      textBaseline: 'middle'
+    }, headerWidth);
+
+    this.title = this.titleObject.text;
+    this.regime = timelineinfo.regime;
     this.settings.gradientOpacity = 0;
 
     if (constants.timelineGradientFillStyle) {
@@ -1633,22 +1641,6 @@ class CanvasTimeline extends CanvasElement {
         ? timelineinfo.strokeStyle
         : constants.timelineBorderColor;
     }
-
-    this.boundingRect = addRectangle(this, layerid, id + '__rect__', vx, vy, vw, vh, {
-      strokeStyle: this.settings.strokeStyle,
-      lineWidth: constants.contentItemBoundingBoxBorderWidth * vw,
-      fillStyle: this.settings.gradientFillStyle,
-      isLineWidthVirtual: true
-    });
-
-    this.titleObject = addText(this, layerid, id + '__header__', timelineinfo.timeStart + marginLeft, timelineinfo.top + marginTop, baseline, headerSize, timelineinfo.header, {
-      fontName: constants.timelineHeaderFontName,
-      fillStyle: constants.timelineHeaderFontColor,
-      textBaseline: 'middle'
-    }, headerWidth);
-
-    this.title = this.titleObject.text;
-    this.regime = timelineinfo.regime;
 
     this.reactsOnMouse = true;
     this.tooltipEnabled = true;
@@ -1762,6 +1754,8 @@ class CanvasTimeline extends CanvasElement {
     };
     */
 
+    this.base_render = this.render;
+
     /* Renders a timeline.
     @param ctx              (context2d) Canvas context2d to render on.
     @param visibleBox_v     ({Left,Right,Top,Bottom}) describes visible region in the virtual space
@@ -1780,6 +1774,8 @@ class CanvasTimeline extends CanvasElement {
       if (typeof self.backgroundImg !== "undefined") {
         this.backgroundImg.render(ctx, visibleBox, viewport2d, size_p, 1.0);
       }
+
+      this.base_render(ctx, visibleBox, viewport2d, size_p, opacity);
 
       if (this.settings.hoverAnimationDelta) {
         if (this.settings.gradientOpacity == 0 || this.settings.gradientOpacity == 1)

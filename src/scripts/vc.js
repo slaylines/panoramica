@@ -72,17 +72,17 @@ export default function VirtualCanvas() {
 
       this.showCloak = false;
 
-      this.element.children('div').each(index => {
-        $(this)
-          .addClass('vc-layer-div unselectable')
-          .css('z-index', index * 3);
+      this.element.children('div').each((index, div) => {
+        const $div = $(div);
+
+        $div.addClass('vc-layer-div unselectable').css('z-index', index * 3);
 
         const layerCanvasJq = $('<canvas></canvas>')
-          .appendTo($(this.element))
+          .appendTo($div)
           .addClass('vc-layer-canvas')
           .css('z-index', index * 3 + 1);
 
-        this.layers.push($(this.element));
+        this.layers.push($div);
       });
 
       this.layout = null;
@@ -129,9 +129,6 @@ export default function VirtualCanvas() {
       const origin = utils.getXBrowserMouseOrigin(this.element, event);
 
       this.lastClickPosition = { x: origin.x, y: origin.y };
-
-      $('iframe').css('pointer-events', 'none');
-      $('#iframe_layer').css('display', 'block').css('z-index', '99999');
     },
 
     mouseUp: function (event) {
@@ -141,9 +138,6 @@ export default function VirtualCanvas() {
       if (this.lastClickPosition && this.lastClickPosition.x === origin.x && this.lastClickPosition.y === origin.y) {
         this.mouseClick(event);
       }
-
-      $('iframe').css('pointer-events', 'auto');
-      $('#iframe_layer').css('display', 'none');
     },
 
     mouseLeave: function (event) {
