@@ -39,7 +39,7 @@ export default function VirtualCanvas() {
     },
 
     _create: function () {
-      this.element.addClass('virtualCanvas');
+      this.element.addClass('vc-canvas');
 
       const size = this.getClientSize();
 
@@ -72,21 +72,23 @@ export default function VirtualCanvas() {
 
       this.showCloak = false;
 
-      this.element.children('div').each(index => {
-        $(this)
-          .addClass('virtualCanvasLayerDiv unselectable')
-          .css('z-index', index * 3);
+      this.element.children('div').each((index, div) => {
+        const $div = $(div);
+
+        $div.addClass('vc-layer-div unselectable').css('z-index', index * 3);
 
         const layerCanvasJq = $('<canvas></canvas>')
-          .appendTo($(this.element))
-          .addClass('virtualCanvasLayerCanvas')
+          .appendTo($div)
+          .addClass('vc-layer-canvas')
           .css('z-index', index * 3 + 1);
 
-        this.layers.push($(this.element));
+        this.layers.push($div);
       });
 
+      this.layout = null;
+
       this.layersContent = new CanvasRootElement(
-        self, undefined, '__root__',
+        this, undefined, '__root__',
         -Infinity, -Infinity, Infinity, Infinity
       );
 
@@ -111,10 +113,10 @@ export default function VirtualCanvas() {
     },
 
     _destroy: function () {
-      this.element.removeClass('virtualCanvas');
-      this.element.children('.virtualCanvasLayerDiv').each((index) => {
-        $(this).removeClass(['virtualCanvasLayerDiv', 'unselectable']);
-        $(this).remove('.virtualCanvasLayerCanvas');
+      this.element.removeClass('vc-canvas');
+      this.element.children('.vc-layer-div').each((index) => {
+        $(this).removeClass(['vc-layer-div', 'unselectable']);
+        $(this).remove('.vc-layer-canvas');
       });
       this.element.unbind(`.${this.widgetName}`);
       this.layers = undefined;
@@ -127,9 +129,6 @@ export default function VirtualCanvas() {
       const origin = utils.getXBrowserMouseOrigin(this.element, event);
 
       this.lastClickPosition = { x: origin.x, y: origin.y };
-
-      $('iframe').css('pointer-events', 'none');
-      $('#iframe_layer').css('display', 'block').css('z-index', '99999');
     },
 
     mouseUp: function (event) {
@@ -139,9 +138,6 @@ export default function VirtualCanvas() {
       if (this.lastClickPosition && this.lastClickPosition.x === origin.x && this.lastClickPosition.y === origin.y) {
         this.mouseClick(event);
       }
-
-      $('iframe').css('pointer-events', 'auto');
-      $('#iframe_layer').css('display', 'none');
     },
 
     mouseLeave: function (event) {
@@ -239,7 +235,7 @@ export default function VirtualCanvas() {
 
     mouseMove: function (event) {
       const viewport = this.getViewport();
-      const origin = utils.getXBrowserMouseOrigin(this.element, event);
+      const origin = utils.getXBrowserMouseOrigin(this.element, event, true);
       const position = viewport.pointScreenToVirtual(origin.x, origin.y);
 
       // triggers an event that handles current mouse position
@@ -329,6 +325,8 @@ export default function VirtualCanvas() {
       this.lastEvent = event;
     },
 
+    setLayout: function (layout) { this.layout = layout; },
+
     getLastEvent: function () { return this.lastEvent; },
     getLayerContent: function () { return this.layersContent; },
 
@@ -400,7 +398,7 @@ export default function VirtualCanvas() {
       this.layers.forEach(layer => {
         layer.width(width).height(height);
 
-        const canvas = layer.children('.virtualCanvasLayerCanvas').first()[0];
+        const canvas = layer.children('.vc-layer-canvas').first()[0];
 
         if (canvas) {
           canvas.width = width;
@@ -408,7 +406,6 @@ export default function VirtualCanvas() {
         }
       });
 
-      // TODO: magic numbers — update canvas width and height
       //this.canvasWidth = Common.vc.width();
       //this.canvasHeight = Common.vc.height();
 
@@ -418,7 +415,6 @@ export default function VirtualCanvas() {
       this.setVisible(this.options.visible);
     },
 
-    // Produces { width, height } object from actual width and height of widget's <div>
     getClientSize: function () {
       return {
         width: this.element[0].clientWidth,
@@ -452,7 +448,7 @@ export default function VirtualCanvas() {
       if (!this.layers.length) return;
 
       const contexts = this.layers.reduce((res, layer) => {
-        const canvas = layer.children('.virtualCanvasLayerCanvas').first()[0];
+        const canvas = layer.children('.vc-layer-canvas').first()[0];
         const ctx = canvas.getContext('2d');
 
         ctx.clearRect(0, 0, viewport.width, viewport.height);
@@ -486,10 +482,10 @@ export default function VirtualCanvas() {
       this.requestNewFrame = false;
 
       // update parameters of animating elements and require new frame if needed
-      if (!Layout.animatingElements.length) {
-        for (let id in Layout.animatingElements)
-          if (Layout.animatingElements[id].animation && Layout.animatingElements[id].animation.isAnimating) {
-            Layout.animatingElements[id].calculateNewFrame();
+      if (!this.layout.animatingElements.length) {
+        for (let id in this.layout.animatingElements)
+          if (this.layout.animatingElements[id].animation && this.layout.animatingElements[id].animation.isAnimating) {
+            this.layout.animatingElements[id].calculateNewFrame();
             this.requestNewFrame = true;
           }
       }
@@ -578,8 +574,6 @@ export default function VirtualCanvas() {
 
       return find(rootTimeline, wnd, scale);
     },
-
-    // TODO: make one showHide method
 
     // Shows top, right, bottom & left cloaks that hide empty space between root timeline's borders and canvas edges.
     cloakNonRootVirtualSpace: function () {
