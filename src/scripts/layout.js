@@ -56,7 +56,7 @@ export default class Layout {
     }
 
     function GenerateAspect(timeline) {
-      timeline.AspectRatio = timeline.aspectRatio || 10;
+      timeline.AspectRatio = timeline.aspectRatio || 2;
     }
 
     function LayoutTimeline(timeline, parentWidth, measureContext) {

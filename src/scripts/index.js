@@ -48,7 +48,7 @@ $(document).ready(() => {
     }
   }
 
-  const visibleRegion = new VisibleRegion2d(-6850000000, 0, 17000000);
+  const visibleRegion = new VisibleRegion2d(-6850000000, 4000000000, 17000000);
   const viewport = new Viewport2d(1, $vc[0].clientWidth, $vc[0].clientHeight, visibleRegion);
 
   const updateAxis = (initial) => {

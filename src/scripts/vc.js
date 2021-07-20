@@ -235,7 +235,7 @@ export default function VirtualCanvas() {
 
     mouseMove: function (event) {
       const viewport = this.getViewport();
-      const origin = utils.getXBrowserMouseOrigin(this.element, event);
+      const origin = utils.getXBrowserMouseOrigin(this.element, event, true);
       const position = viewport.pointScreenToVirtual(origin.x, origin.y);
 
       // triggers an event that handles current mouse position

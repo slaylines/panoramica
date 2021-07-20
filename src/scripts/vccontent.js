@@ -41,6 +41,37 @@ const turnIsRenderedOff = (element) => {
   }
 }
 
+const zoomToElementHandler = (sender, e, scale /* n [time units] / m [pixels] */ ) => {
+  const elementclick = $.Event('elementclick');
+  const vp = sender.vc.getViewport()
+  const visible = getVisibleForElement(sender, scale, vp, true);
+
+  elementclick.newvisible = visible;
+  elementclick.element = sender;
+  sender.vc.element.trigger(elementclick);
+
+  return true;
+};
+
+const getVisibleForElement = (element, scale, viewport, useMargin) => {
+  var margin = 2 * (constants.contentScaleMargin && useMargin ? constants.contentScaleMargin : 0);
+  var width = viewport.width - margin;
+  if (width < 0)
+    width = viewport.width;
+  var scaleX = scale * element.width / width;
+
+  var height = viewport.height - margin;
+  if (height < 0)
+    height = viewport.height;
+  var scaleY = scale * element.height / height;
+  var vs = {
+    centerX: element.x + element.width / 2.0,
+    centerY: element.y + element.height / 2.0,
+    scale: Math.max(scaleX, scaleY)
+  };
+  return vs;
+};
+
 /*
   Renders a CanvasElement recursively
   @param element          (CanvasElement) element to render
@@ -168,17 +199,6 @@ export const addRectangle = (element, layerid, id, vx, vy, vw, vh, settings) => 
 
 export class VCContent {
   constructor() {
-    var elementclick = $.Event("elementclick");
-
-    var zoomToElementHandler = function (sender, e, scale /* n [time units] / m [pixels] */ ) {
-      var vp = sender.vc.getViewport();
-      var visible = getVisibleForElement(sender, scale, vp, true);
-      elementclick.newvisible = visible;
-      elementclick.element = sender;
-      sender.vc.element.trigger(elementclick);
-      return true;
-    };
-
     /* Adds a circle as a child of the given virtual canvas element.
     @param element   (CanvasElement) Parent element, whose children is to be new element.
     @param layerid   (any type) id of the layer for this element
@@ -1148,25 +1168,6 @@ export class VCContent {
       }
     }
   }
-
-  getVisibleForElement(element, scale, viewport, use_margin) {
-    var margin = 2 * (constants.contentScaleMargin && use_margin ? constants.contentScaleMargin : 0);
-    var width = viewport.width - margin;
-    if (width < 0)
-      width = viewport.width;
-    var scaleX = scale * element.width / width;
-
-    var height = viewport.height - margin;
-    if (height < 0)
-      height = viewport.height;
-    var scaleY = scale * element.height / height;
-    var vs = {
-      centerX: element.x + element.width / 2.0,
-      centerY: element.y + element.height / 2.0,
-      scale: Math.max(scaleX, scaleY)
-    };
-    return vs;
-  }
 }
 
 /*  Represents a base element that can be added to the VirtualCanvas.
@@ -1527,14 +1528,10 @@ class CanvasRectangle extends CanvasElement {
           }
 
           if (p.x > 0) {
-            if (this.settings.showFromCirca && ctx.setLineDash)
-              ctx.setLineDash([6, 3]);
             ctx.beginPath();
             ctx.moveTo(p.x, top - lineWidth2);
             ctx.lineTo(p.x, bottom + lineWidth2);
             ctx.stroke();
-            if (ctx.setLineDash)
-              ctx.setLineDash([]);
           }
           if (p.y > 0) {
             ctx.beginPath();
@@ -1543,16 +1540,10 @@ class CanvasRectangle extends CanvasElement {
             ctx.stroke();
           }
           if (p2.x < viewport2d.width) {
-            if (this.settings.showToCirca && ctx.setLineDash)
-              ctx.setLineDash([6, 3]);
-            if (this.settings.showInfinite && ctx.setLineDash)
-              ctx.setLineDash([1, 3]);
             ctx.beginPath();
             ctx.moveTo(p2.x, top - lineWidth2);
             ctx.lineTo(p2.x, bottom + lineWidth2);
             ctx.stroke();
-            if (ctx.setLineDash)
-              ctx.setLineDash([]);
           }
           if (p2.y < viewport2d.height) {
             ctx.beginPath();
@@ -1655,10 +1646,10 @@ class CanvasTimeline extends CanvasRectangle {
     }
     */
 
-    /*
-    this.onmouseclick = function (e) {
-      return zoomToElementHandler(this, e, 1.0);
+    this.onmouseclick = event => {
+      return zoomToElementHandler(this, event, 1.0);
     };
+    
     this.onmousehover = function (pv, e) {
       //previous timeline also hovered and mouse leave don't appear, hide it
       //if infodot is null or undefined, we should stop animation
@@ -1667,7 +1658,7 @@ class CanvasTimeline extends CanvasRectangle {
         try {
           this.vc.currentlyHoveredInfodot.id;
         } catch (ex) {
-          CZ.Common.stopAnimationTooltip();
+          // CZ.Common.stopAnimationTooltip();
           this.vc.currentlyHoveredTimeline.tooltipIsShown = false;
         }
       }
@@ -1684,13 +1675,14 @@ class CanvasTimeline extends CanvasRectangle {
       //if title is not in visible region, try to eval its screenFontSize using
       //formula based on height of its parent timeline
       if (this.titleObject.initialized == false) {
-        var vp = this.vc.getViewport();
+        const vp = this.vc.getViewport();
         this.titleObject.screenFontSize = constants.timelineHeaderSize * vp.heightVirtualToScreen(this.height);
       }
 
       //if timeline title is small, show tooltip
       this.tooltipEnabled = this.titleObject.screenFontSize <= constants.timelineTooltipMaxHeaderSize;
 
+      /*
       if (CZ.Common.tooltipMode != "infodot") {
         CZ.Common.tooltipMode = "timeline";
 
@@ -1732,17 +1724,20 @@ class CanvasTimeline extends CanvasRectangle {
           CZ.Common.animationTooltipRunning = $('.bubbleInfo').fadeIn();
         }
       }
+      */
     };
     this.onmouseunhover = function (pv, e) {
       if (this.vc.currentlyHoveredTimeline != null && this.vc.currentlyHoveredTimeline.id == id) {
         this.vc.currentlyHoveredTimeline = null;
 
+        /*
         if ((this.tooltipIsShown == true) && (CZ.Common.tooltipMode == "timeline")) {
           CZ.Common.tooltipMode = "default";
           CZ.Common.stopAnimationTooltip();
           $(".bubbleInfo").attr("id", "defaultBox");
           this.tooltipIsShown = false;
         }
+        */
       }
 
       this.settings.strokeStyle = timelineinfo.strokeStyle ? timelineinfo.strokeStyle : constants.timelineBorderColor;
@@ -1751,7 +1746,6 @@ class CanvasTimeline extends CanvasRectangle {
       this.settings.hoverAnimationDelta = -constants.timelineHoverAnimation;;
       this.vc.requestInvalidate();
     };
-    */
 
     this.base_render = this.render;
 
