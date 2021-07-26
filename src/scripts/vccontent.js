@@ -7,7 +7,7 @@ import * as dates from './dates';
 import * as utils from './utils';
 import Layout from './layout';
 
-import Common from './common';
+//import Common from './common';
 //import Service from './service';
 
 /*
@@ -158,6 +158,28 @@ export const addTimeline = (element, layerid, id, timelineinfo) => {
   );
 
   return timeline;
+};
+
+/* Adds an infodot composite element into a virtual canvas.
+@param vc        (VirtualCanvas) VirtualCanvas hosting this element
+@param element   (CanvasElement) Parent element, whose children is to be new timeline.
+@param layerid   (any type) id of the layer for this element
+@param id        (any type) id of an element
+@param contentItems (array of { id, date (string), title (string), description (string), mediaUrl (string), mediaType (string) }) content items of the infodot, first is central.
+@returns         root of the content item tree
+*/
+export const addInfodot = (element, layerid, id, time, vyc, radv, contentItems, infodotDescription) => {
+  const infodot = new CanvasInfodot(
+    element.vc, 
+    layerid, 
+    id, 
+    time, 
+    vyc, 
+    radv, 
+    contentItems, 
+    infodotDescription
+  );
+  return addChild(element, infodot, true);
 };
 
 /*
@@ -430,622 +452,6 @@ export class VCContent {
       window.open(url, id, features);
     }
 
-    /*******************************************************************************************************/
-    /* Infodots & content items                                                                            */
-    /*******************************************************************************************************/
-
-    /*  Represents an image on a virtual canvas with support of dynamic level of detail.
-    @param layerid   (any type) id of the layer for this element
-    @param id   (any type) id of an element
-    @param vx   (number) x of left top corner in virtual space
-    @param vy   (number) y of left top corner in virtual space
-    @param vw   (number) width of a bounding box in virtual space
-    @param vh   (number) height of a bounding box in virtual space
-    @param contentItem ({ id, guid, date (string), title (string), description (string), mediaUrl (string), mediaType (string) }) describes content of this content item
-    @remarks Supported media types (contentItem.mediaType) are:
-    - image
-    - video
-    - audio
-    - pdf
-    */
-    function ContentItem(vc, layerid, id, vx, vy, vw, vh, contentItem) {
-      this.base = CanvasDynamicLOD;
-      this.base(vc, layerid, id, vx, vy, vw, vh);
-      this.guid = contentItem.id;
-      this.type = 'contentItem';
-      this.contentItem = contentItem;
-
-      // Building content of the item
-      var titleHeight = vh * constants.contentItemTopTitleHeight * 0.8;
-      var mediaHeight = vh * constants.contentItemMediaHeight;
-      var descrHeight = constants.contentItemFontHeight * vh;
-
-      var contentWidth = vw * constants.contentItemContentWidth;
-      var leftOffset = (vw - contentWidth) / 2.0;
-      var verticalMargin = vh * constants.contentItemVerticalMargin;
-
-      var mediaTop = vy + verticalMargin;
-      var sourceVertMargin = verticalMargin * 0.4;
-      var sourceTop = mediaTop + mediaHeight + sourceVertMargin;
-      var sourceRight = vx + vw - leftOffset;
-      var sourceHeight = vh * constants.contentItemSourceHeight * 0.8;
-      var titleTop = sourceTop + verticalMargin + sourceHeight;
-
-      // Bounding rectangle
-      var rect = this.addRectangle(this, layerid, id + "__rect__", vx, vy, vw, vh, {
-        strokeStyle: constants.contentItemBoundingBoxBorderColor,
-        lineWidth: constants.contentItemBoundingBoxBorderWidth * vw,
-        fillStyle: constants.contentItemBoundingBoxFillColor,
-        isLineWidthVirtual: true
-      });
-      this.reactsOnMouse = true;
-
-      this.onmouseenter = function (e) {
-        rect.settings.strokeStyle = constants.contentItemBoundingHoveredBoxBorderColor;
-        this.vc.currentlyHoveredContentItem = this;
-        this.vc.requestInvalidate();
-      };
-
-      this.onmouseleave = function (e) {
-        rect.settings.strokeStyle = constants.contentItemBoundingBoxBorderColor;
-        this.vc.currentlyHoveredContentItem = null;
-        this.isMouseIn = false;
-        this.vc.requestInvalidate();
-      };
-
-      this.onmouseclick = function (e) {
-        return zoomToElementHandler(this, e, 1.0);
-      };
-
-      this.changeZoomLevel = function (curZl, newZl) {
-        var vy = this.newY;
-        var mediaTop = vy + verticalMargin;
-        var sourceTop = mediaTop + mediaHeight + sourceVertMargin;
-        var titleTop = sourceTop + verticalMargin + sourceHeight;
-
-        if (newZl >= constants.contentItemShowContentZoomLevel) {
-          if (curZl >= constants.contentItemShowContentZoomLevel)
-            return null;
-
-          var container = new ContainerElement(vc, layerid, id + "__content", vx, vy, vw, vh);
-
-          // Media
-          var mediaID = id + "__media__";
-
-          var uri = this.contentItem.uri;
-          this.contentItem.uri = CZ.Service.MakeSecureUri(uri);
-
-          var imageElem = null;
-          if (this.contentItem.mediaType.toLowerCase() === 'image' || this.contentItem.mediaType.toLowerCase() === 'picture') {
-            imageElem = VCContent.addImage(container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, this.contentItem.uri);
-          } else if (this.contentItem.mediaType.toLowerCase() === 'deepimage') {
-            imageElem = VCContent.addSeadragonImage(container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex, this.contentItem.uri);
-          } else if (this.contentItem.mediaType.toLowerCase() === 'video') {
-            VCContent.addVideo(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
-          } else if (this.contentItem.mediaType.toLowerCase() === 'audio') {
-            mediaTop += constants.contentItemAudioTopMargin * vh;
-            mediaHeight = vh * constants.contentItemAudioHeight;
-            addAudio(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
-          } else if (this.contentItem.mediaType.toLowerCase() === 'pdf') {
-            VCContent.addPdf(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
-          } else if (this.contentItem.mediaType.toLowerCase() === 'skydrive-document') {
-            VCContent.addSkydriveDocument(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
-          } else if (this.contentItem.mediaType.toLowerCase() === 'skydrive-image') {
-            VCContent.addSkydriveImage(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
-          } else if (CZ.Extensions.mediaTypeIsExtension(contentItem.mediaType)) {
-            VCContent.addExtension(contentItem.mediaType, container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex, this.contentItem.uri);
-          }
-
-          // Title
-          var titleText = this.contentItem.title;
-          addText(container, layerid, id + "__title__", vx + leftOffset, titleTop, titleTop + titleHeight / 2.0, 0.9 * titleHeight, titleText, {
-            fontName: constants.contentItemHeaderFontName,
-            fillStyle: constants.contentItemHeaderFontColor,
-            textBaseline: 'middle',
-            textAlign: 'center',
-            opacity: 1,
-            wrapText: true,
-            numberOfLines: 1
-          }, contentWidth);
-
-          // Source
-          var sourceText = this.contentItem.attribution;
-          var mediaSource = this.contentItem.mediaSource;
-          if (sourceText) {
-            var addSourceText = function (sx, sw, sy) {
-              var sourceItem = addText(container, layerid, id + "__source__", sx, sy, sy + sourceHeight / 2.0, 0.9 * sourceHeight, sourceText, {
-                fontName: constants.contentItemHeaderFontName,
-                fillStyle: constants.contentItemSourceFontColor,
-                textBaseline: 'middle',
-                textAlign: 'right',
-                opacity: 1,
-                adjustWidth: true
-              }, sw);
-
-              if (mediaSource) {
-                sourceItem.reactsOnMouse = true;
-                sourceItem.onmouseclick = function (e) {
-                  vc.element.css('cursor', 'default');
-                  window.open(mediaSource);
-                  return true;
-                };
-                sourceItem.onmouseenter = function (pv, e) {
-                  this.settings.fillStyle = constants.contentItemSourceHoveredFontColor;
-                  this.vc.requestInvalidate();
-                  this.vc.element.css('cursor', 'pointer');
-                };
-                sourceItem.onmouseleave = function (pv, e) {
-                  this.settings.fillStyle = constants.contentItemSourceFontColor;
-                  this.vc.requestInvalidate();
-                  this.vc.element.css('cursor', 'default');
-                };
-              }
-            };
-
-            addSourceText(vx + leftOffset, contentWidth, sourceTop);
-          }
-
-          // Description
-          var descrTop = titleTop + titleHeight + verticalMargin;
-          var descr = addScrollText(container, layerid, id + "__description__", vx + leftOffset, descrTop, contentWidth, descrHeight, this.contentItem.description, 30, {});
-
-          return {
-            zoomLevel: constants.contentItemShowContentZoomLevel,
-            content: container
-          };
-        } else {
-          var zl = newZl;
-          if (zl >= constants.contentItemThumbnailMaxLevel) {
-            if (curZl >= constants.contentItemThumbnailMaxLevel && curZl < constants.contentItemShowContentZoomLevel)
-              return null;
-            zl = constants.contentItemThumbnailMaxLevel;
-          } else if (zl <= constants.contentItemThumbnailMinLevel) {
-            if (curZl <= constants.contentItemThumbnailMinLevel && curZl > 0)
-              return null;
-            zl = constants.contentItemThumbnailMinLevel;
-          }
-          var sz = 1 << zl;
-          var thumbnailUri = constants.contentItemThumbnailBaseUri + 'x' + sz + '/' + contentItem.guid + '.png';
-          thumbnailUri = CZ.Service.MakeSecureUri(thumbnailUri);
-          return {
-            zoomLevel: newZl,
-            content: new CanvasImage(vc, layerid, id + "@" + 1, thumbnailUri, vx, vy, vw, vh)
-          };
-        }
-      };
-
-      this.prototype = new CanvasDynamicLOD(vc, layerid, id, vx, vy, vw, vh);
-    }
-
-    /*  An Infodot element that can be added to a VirtualCanvas.
-    @param layerid   (any type) id of the layer for this element
-    @param id   (any type) id of an element
-    @param vx   (number) x of left top corner in virtual space
-    @param vy   (number) y of left top corner in virtual space
-    @param vw   (number) width of a bounding box in virtual space
-    @param vh   (number) height of a bounding box in virtual space
-    @param infodotDescription  ({title})
-    */
-    function CanvasInfodot(vc, layerid, id, time, vyc, radv, contentItems, infodotDescription) {
-      this.base = CanvasCircle;
-      this.base(
-        vc, layerid, id, time, vyc, radv, {
-          strokeStyle: constants.infoDotBorderColor,
-          lineWidth: constants.infoDotBorderWidth * radv,
-          fillStyle: constants.infoDotFillColor,
-          isLineWidthVirtual: true,
-          showCirca: infodotDescription.isCirca
-        }
-      );
-      this.guid = infodotDescription.guid;
-      this.type = 'infodot';
-
-      this.isBuffered = infodotDescription.isBuffered;
-      this.contentItems = contentItems;
-      this.hasContentItems = false;
-      this.infodotDescription = infodotDescription;
-      this.title = infodotDescription.title;
-      this.isCirca = infodotDescription.isCirca;
-      this.offsetY = infodotDescription.offsetY;
-      this.opacity = typeof infodotDescription.opacity !== 'undefined' ? infodotDescription.opacity : 1;
-
-      contentItems.sort(function (a, b) {
-        if (typeof a.order !== 'undefined' && typeof b.order === 'undefined')
-          return -1;
-        else if (typeof a.order === 'undefined' && typeof b.order !== 'undefined')
-          return 1;
-        else if (typeof a.order === 'undefined' && typeof b.order === 'undefined')
-          return 0;
-        else if (a.order < b.order)
-          return -1;
-        else if (a.order > b.order)
-          return 1;
-        else
-          return 0;
-      });
-
-      for (var i = 0; i < contentItems.length; i++) {
-        contentItems[i].order = i;
-      }
-
-      var vyc = this.newY + radv;
-      var innerRad = radv - constants.infoDotHoveredBorderWidth * radv;
-      this.outerRad = radv;
-
-      this.reactsOnMouse = true;
-
-      this.tooltipEnabled = true; // indicates whether tooltip is enabled for this infodot at this moment or not
-      this.tooltipIsShown = false; // indicates whether tooltip is shown or not
-
-      this.onmousehover = function (pv, e) {
-        this.vc.currentlyHoveredInfodot = this;
-        this.vc.requestInvalidate();
-      };
-
-      this.onmouseclick = function (e) {
-        return zoomToElementHandler(this, e, 1.0);
-      };
-
-      this.onmouseenter = function (e) {
-        this.settings.strokeStyle = constants.infoDotHoveredBorderColor;
-        this.settings.lineWidth = constants.infoDotHoveredBorderWidth * radv;
-        this.vc.requestInvalidate();
-
-        // clear tooltipIsShown flag for currently hovered timeline
-        // it can be null because of mouse events sequence: mouseenter for infodot -> mousehover for timeline -> mouseunhover for timeline
-        if (this.vc.currentlyHoveredTimeline != null) {
-          // stop active tooltip fadein animation and hide tooltip
-          CZ.Common.stopAnimationTooltip();
-          this.vc.currentlyHoveredTimeline.tooltipIsShown = false;
-        }
-
-        $(".bubbleInfo span").text(infodotDescription.title);
-        this.panelWidth = $('.bubbleInfo').outerWidth(); // complete width of tooltip panel
-        this.panelHeight = $('.bubbleInfo').outerHeight(); // complete height of tooltip panel
-
-        CZ.Common.tooltipMode = "infodot"; //set tooltip mode to infodot
-
-        // start tooltip fadein animation for this infodot
-        if ((this.tooltipEnabled == true) && (this.tooltipIsShown == false)) {
-          this.tooltipIsShown = true;
-          $(".bubbleInfo").attr("id", "defaultBox");
-          CZ.Common.animationTooltipRunning = $('.bubbleInfo').fadeIn();
-        }
-
-        this.vc.cursorPosition = time;
-        this.vc.currentlyHoveredInfodot = this;
-        this.vc._setConstraintsByInfodotHover(this);
-        this.vc.RaiseCursorChanged();
-      };
-
-      this.onmouseleave = function (e) {
-        this.isMouseIn = false;
-        this.settings.strokeStyle = constants.infoDotBorderColor;
-        this.settings.lineWidth = constants.infoDotBorderWidth * radv;
-        this.vc.requestInvalidate();
-
-        // stop active fadein animation and hide tooltip
-        if (this.tooltipIsShown == true)
-          CZ.Common.stopAnimationTooltip();
-
-        this.tooltipIsShown = false;
-        CZ.Common.tooltipMode = "default";
-
-        this.vc.currentlyHoveredInfodot = undefined;
-        this.vc._setConstraintsByInfodotHover(undefined);
-        this.vc.RaiseCursorChanged();
-      };
-
-      this.onmouseclick = function (e) {
-        return zoomToElementHandler(this, e, 1.0);
-      };
-
-      //Bibliography flag accroding to BUG 215750
-      var bibliographyFlag = true;
-
-      // Building dynamic LOD content
-      var infodot = this;
-      var root = new CanvasDynamicLOD(vc, layerid, id + "_dlod", time - innerRad, vyc - innerRad, 2 * innerRad, 2 * innerRad);
-      root.removeWhenInvisible = true;
-      VCContent.addChild(this, root, false);
-
-      root.firstLoad = true;
-      root.changeZoomLevel = function (curZl, newZl) {
-        var vyc = infodot.newY + radv;
-
-        // Showing only thumbnails for every content item of the infodot
-        if (newZl >= constants.infodotShowContentThumbZoomLevel && newZl < constants.infodotShowContentZoomLevel) {
-          var URL = CZ.UrlNav.getURL();
-          if (typeof URL.hash.params != 'undefined' && typeof URL.hash.params['b'] != 'undefined')
-            bibliographyFlag = false;
-
-          if (curZl >= constants.infodotShowContentThumbZoomLevel && curZl < constants.infodotShowContentZoomLevel)
-            return null;
-
-          // Tooltip is enabled now.
-          infodot.tooltipEnabled = true;
-
-          var contentItem = null;
-
-          if (infodot.contentItems.length > 0) {
-            contentItem = new ContainerElement(vc, layerid, id + "__contentItems", root.x, root.newY, 2 * innerRad, 2 * innerRad);
-            var items = buildVcContentItems(infodot.contentItems, time, vyc, innerRad, vc, layerid);
-            if (items)
-              for (var i = 0; i < items.length; i++)
-                VCContent.addChild(contentItem, items[i], false);
-          }
-
-          if (contentItem) {
-            infodot.hasContentItems = true;
-            return {
-              zoomLevel: newZl,
-              content: contentItem
-            };
-          } else
-            return null;
-        } else if (newZl >= constants.infodotShowContentZoomLevel) {
-          if (curZl >= constants.infodotShowContentZoomLevel)
-            return null;
-
-          // Tooltip is disabled now.
-          infodot.tooltipEnabled = false;
-
-          // stop active fadein animation and hide tooltip
-          if (infodot.tooltipIsShown == true) {
-            CZ.Common.stopAnimationTooltip();
-            infodot.tooltipIsShown = false;
-          }
-
-          var contentItem = null;
-
-          if (infodot.contentItems.length > 0) {
-            contentItem = new ContainerElement(vc, layerid, id + "__contentItems", root.x, root.y, 2 * innerRad, 2 * innerRad);
-            var items = buildVcContentItems(infodot.contentItems, time, vyc, innerRad, vc, layerid);
-            if (items)
-              for (var i = 0; i < items.length; i++)
-                VCContent.addChild(contentItem, items[i], false);
-          }
-          if (contentItem == null)
-            return null;
-
-          var titleWidth = constants.infodotTitleWidth * radv * 2;
-          var titleHeight = constants.infodotTitleHeight * radv * 2;
-          var centralSquareSize = (270 / 2 + 5) / 450 * 2 * radv;
-          var titleTop = vyc - centralSquareSize - titleHeight;
-          var title = '';
-
-          if (infodotDescription && infodotDescription.title && infodotDescription.date) {
-            var exhibitDate = CZ.Dates.convertCoordinateToYear(infodotDescription.date);
-            if ((exhibitDate.regime == "CE") || (exhibitDate.regime == "BCE")) {
-              var date_number = Number(infodotDescription.date);
-              var exhibitDate = CZ.Dates.convertCoordinateToYear(date_number);
-              var exhibitYMD = CZ.Dates.getYMDFromCoordinate(date_number);
-              date_number = Math.abs(date_number);
-              if (date_number == Math.floor(date_number)) {
-                title = infodotDescription.title + '\n(' + parseFloat((date_number).toFixed(2)) + ' ' + exhibitDate.regime + ')';
-              } else {
-                title = infodotDescription.title + '\n(' + exhibitYMD.year + "." + (exhibitYMD.month + 1) + "." + exhibitYMD.day + ' ' + exhibitDate.regime + ')';
-              }
-            } else {
-              // Format year title with fixed precision
-              title = infodotDescription.title + '\n(' + parseFloat(exhibitDate.year.toFixed(2)) + ' ' + exhibitDate.regime + ')';
-            }
-          }
-
-          var infodotTitle = addText(contentItem, layerid, id + "__title", time - titleWidth / 2, titleTop, titleTop, titleHeight, title, {
-            fontName: constants.contentItemHeaderFontName,
-            fillStyle: constants.contentItemHeaderFontColor,
-            textBaseline: 'middle',
-            textAlign: 'center',
-            opacity: 1,
-            wrapText: true,
-            numberOfLines: 2
-          }, titleWidth);
-
-          var imageSize = (titleTop - infodot.y) * 0.75;
-
-          //adding edit and copy button
-          /*if (CZ.Authoring.isEnabled) {
-          	var editButton = VCContent.addImage(infodot, layerid, id + "__edit", time, infodot.y + imageSize * 0.2, imageSize, imageSize, "/images/edit.svg");
-          	var copyButton = VCContent.addImage(infodot, layerid, id + "__copy", time - imageSize, infodot.y + imageSize * 0.2, imageSize, imageSize, "/images/copy.svg");
-
-          	editButton.reactsOnMouse = true;
-          	editButton.onmouseclick = function () {
-          		CZ.Authoring.isActive = true;
-          		CZ.Authoring.mode = "editExhibit";
-          		CZ.Authoring.selectedExhibit = infodot;
-          		return true;
-          	};
-
-          	editButton.onmouseenter = function () {
-          		this.vc.element.css('cursor', 'pointer');
-          		this.vc.element.attr('title', 'Edit Exhibit or Add Artifact');
-          		infodot.settings.strokeStyle = "yellow";
-          	};
-
-          	editButton.onmouseleave = function () {
-          		this.vc.element.css('cursor', 'default');
-          		this.vc.element.attr('title', '');
-          		infodot.settings.strokeStyle = constants.infoDotBorderColor;
-          	};
-
-          } else {
-          	var copyButton = VCContent.addImage(infodot, layerid, id + "__copy", time - imageSize / 2, infodot.y + imageSize * 0.2, imageSize, imageSize, "/images/copy.svg");
-          }*/
-          copyButton.reactsOnMouse = true;
-
-          copyButton.onmouseclick = function () {
-            CZ.Service.exportExhibit(this.parent.guid).then(function (exportData) {
-              localStorage.setItem('ExportedSchemaVersion', constants.schemaVersion);
-              localStorage.setItem('ExportedExhibit', JSON.stringify(exportData));
-              localStorage.removeItem('ExportedTimeline');
-              CZ.Authoring.showMessageWindow('"' + exportData.title + '" has been copied to your clip-board. You can paste this into a different timeline.');
-            });
-            return true;
-          };
-
-          copyButton.onmouseenter = function () {
-            this.vc.element.css('cursor', 'pointer');
-            this.vc.element.attr('title', 'Copy Exhibit to Clipboard');
-            infodot.settings.strokeStyle = "yellow";
-          };
-
-          copyButton.onmouseleave = function () {
-            this.vc.element.css('cursor', 'default');
-            this.vc.element.attr('title', '');
-            infodot.settings.strokeStyle = constants.infoDotBorderColor;
-          };
-
-
-
-
-          /*var biblBottom = vyc + centralSquareSize + 63.0 / 450 * 2 * radv;
-          var biblHeight = constants.infodotBibliographyHeight * radv * 2;
-          var biblWidth = titleWidth / 3;
-          var bibl = addText(contentItem, layerid, id + "__bibliography", time - biblWidth / 2, biblBottom - biblHeight, biblBottom - biblHeight / 2, biblHeight, "Bibliography", {
-          	fontName: constants.contentItemHeaderFontName,
-          	fillStyle: constants.contentItemHeaderFontColor,
-          	textBaseline: 'middle',
-          	textAlign: 'center',
-          	opacity: 1
-          }, biblWidth);
-          bibl.reactsOnMouse = true;
-          bibl.onmouseclick = function (e) {
-          	this.vc.element.css('cursor', 'default');
-          	CZ.Bibliography.showBibliography({
-          		infodot: infodotDescription,
-          		contentItems: infodot.contentItems
-          	}, contentItem, id + "__bibliography");
-          	return true;
-          };
-          bibl.onmouseenter = function (pv, e) {
-          	this.vc.element.css('cursor', 'pointer');
-          	this.vc.element.attr('title', 'View Links, Sources and Attributions');
-          	this.vc.requestInvalidate();
-          	this.vc.element.css('cursor', 'pointer');
-          };
-          bibl.onmouseleave = function (pv, e) {
-          	this.vc.element.css('cursor', 'default');
-          	this.vc.element.attr('title', '');
-          	this.vc.requestInvalidate();
-          	this.vc.element.css('cursor', 'default');
-          };*/
-
-          //Parse url for parameter b (bibliography).
-          /*var bid = window.location.hash.match("b=([a-z0-9_\-]+)");
-          if (bid && bibliographyFlag) {
-          	//bid[0] - source string
-          	//bid[1] - found match
-          	CZ.Bibliography.showBibliography({
-          		infodot: infodotDescription,
-          		contentItems: infodot.contentItems
-          	}, contentItem, bid[1]);
-          }*/
-
-          if (contentItem) {
-            infodot.hasContentItems = true;
-            return {
-              zoomLevel: newZl,
-              content: contentItem
-            };
-          }
-        } else {
-          // Tooltip is enabled now.
-          infodot.tooltipEnabled = true;
-
-          infodot.hasContentItems = false;
-          if (infodot.contentItems.length == 0)
-            return null;
-
-          var zl = newZl;
-
-          if (zl <= constants.contentItemThumbnailMinLevel) {
-            if (curZl <= constants.contentItemThumbnailMinLevel && curZl > 0)
-              return null;
-          }
-          if (zl >= constants.contentItemThumbnailMaxLevel) {
-            if (curZl >= constants.contentItemThumbnailMaxLevel && curZl < constants.infodotShowContentZoomLevel)
-              return null;
-            zl = constants.contentItemThumbnailMaxLevel;
-          }
-          if (zl < constants.contentItemThumbnailMinLevel) {
-            return {
-              zoomLevel: zl,
-              content: new ContainerElement(vc, layerid, id + "__empty", time, vyc, 0, 0)
-            };
-          }
-          var contentItem = infodot.contentItems[0];
-          var sz = 1 << zl;
-          var thumbnailUri = constants.contentItemThumbnailBaseUri + 'x' + sz + '/' + contentItem.guid + '.png';
-          var l = innerRad * 260 / 225;
-          return {
-            zoomLevel: zl,
-            content: new CanvasImage(vc, layerid, id + "@" + zl, thumbnailUri, time - l / 2.0, vyc - l / 2.0, l, l)
-          };
-        }
-      };
-
-      // Applying Jessica's proportions
-      var _rad = 450.0 / 2.0;
-      var k = 1.0 / _rad;
-      var _wc = (252.0 + 0) * k;
-      var _hc = (262.0 + 0) * k;
-      var strokeWidth = 3 * k * radv;
-      var strokeLength = 24.0 * k * radv;
-      var xlt0 = -_wc / 2 * radv + time;
-      var ylt0 = -_hc / 2 * radv + vyc;
-      var xlt1 = _wc / 2 * radv + time;
-      var ylt1 = _hc / 2 * radv + vyc;
-
-      /* Renders an infodot.
-      @param ctx              (context2d) Canvas context2d to render on.
-      @param visibleBox_v     ({Left,Right,Top,Bottom}) describes visible region in the virtual space
-      @param viewport2d       (Viewport2d) current viewport
-      @param size_p           ({x,y}) size of bounding box of this element in pixels
-      @remarks The method is implemented for each particular VirtualCanvas element.
-      */
-      this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
-        this.prototype.render.call(this, ctx, visibleBox, viewport2d, size_p, opacity); // rendering the circle
-
-        var sw = viewport2d.widthVirtualToScreen(strokeWidth);
-        if (sw < 0.5)
-          return;
-
-        var vyc = infodot.y + radv;
-        var xlt0 = -_wc / 2 * radv + time;
-        var ylt0 = -_hc / 2 * radv + vyc;
-        var xlt1 = _wc / 2 * radv + time;
-        var ylt1 = _hc / 2 * radv + vyc;
-
-        var rad = this.width / 2.0;
-        var xc = this.x + rad;
-        var yc = this.y + rad;
-        var radp = size_p.x / 2.0;
-
-        var sl = viewport2d.widthVirtualToScreen(strokeLength);
-        var pl0 = viewport2d.pointVirtualToScreen(xlt0, ylt0);
-        var pl1 = viewport2d.pointVirtualToScreen(xlt1, ylt1);
-
-        ctx.lineWidth = sw;
-        ctx.strokeStyle = constants.contentItemBoundingBoxFillColor;
-      };
-
-      /* Checks whether the given point (virtual) is inside the object
-      (should take into account the shape) */
-      this.isInside = function (point_v) {
-        var len2 = utils.sqr(point_v.x - this.x - (this.width / 2)) + utils.sqr(point_v.y - this.y - (this.height / 2));
-        var rad = this.width / 2.0;
-        return len2 <= rad * rad;
-      };
-
-      this.prototype = new CanvasCircle(vc, layerid, id, time, vyc, radv, {
-        strokeStyle: constants.infoDotBorderColor,
-        lineWidth: constants.infoDotBorderWidth * radv,
-        fillStyle: constants.infoDotFillColor,
-        isLineWidthVirtual: true
-      });
-    }
-
     /*
     @param infodot {CanvasElement}  Parent of the content item
     @param cid  {string}            id of the content item
@@ -1074,21 +480,6 @@ export class VCContent {
       }
       return null;
     }
-    //VCContent.getContentItem = getContentItem;
-
-    /* Adds an infodot composite element into a virtual canvas.
-    @param vc        (VirtualCanvas) VirtualCanvas hosting this element
-    @param element   (CanvasElement) Parent element, whose children is to be new timeline.
-    @param layerid   (any type) id of the layer for this element
-    @param id        (any type) id of an element
-    @param contentItems (array of { id, date (string), title (string), description (string), mediaUrl (string), mediaType (string) }) content items of the infodot, first is central.
-    @returns         root of the content item tree
-    */
-    function addInfodot(element, layerid, id, time, vyc, radv, contentItems, infodotDescription) {
-      var infodot = new CanvasInfodot(element.vc, layerid, id, time, vyc, radv, contentItems, infodotDescription);
-      return VCContent.addChild(element, infodot, true);
-    }
-    VCContent.addInfodot = addInfodot;
 
     function buildVcContentItems(contentItems, xc, yc, rad, vc, layerid) {
       var n = contentItems.length;
@@ -1791,10 +1182,11 @@ class CanvasTimeline extends CanvasRectangle {
 The element is always rendered as a circle and ignores the aspect ratio of the viewport.
 For this, circle radius in pixels is computed from its virtual width.
 */
-class CanvasCircle {
+class CanvasCircle extends CanvasElement {
   constructor(vc, layerid, id, vxc, vyc, vradius, settings) {
-    this.base = CanvasElement;
-    this.base(vc, layerid, id, vxc - vradius, vyc - vradius, 2.0 * vradius, 2.0 * vradius);
+    //this.base = CanvasElement;
+    //this.base(vc, layerid, id, vxc - vradius, vyc - vradius, 2.0 * vradius, 2.0 * vradius);
+    super(vc, layerid, id, vxc - vradius, vyc - vradius, 2.0 * vradius, 2.0 * vradius);
     this.settings = settings;
     this.isObservedNow = false; //whether the circle is the largest circle under exploration,
 
@@ -2471,11 +1863,12 @@ class CanvasAudioItem {
  * @param vw      width of an image in virtual space.
  * @param vh      height of an image in virtual space.
  */
-class BackgroundImage {
+class BackgroundImage extends CanvasElement {
   constructor(vc, layerid, id, src, vx, vy, vw, vh) {
+    super(vc, layerid, id, vx, vy, vw, vh);
     var self = this;
-    self.base = CanvasElement;
-    self.base(vc, layerid, id, vx, vy, vw, vh);
+    //self.base = CanvasElement;
+    //self.base(vc, layerid, id, vx, vy, vw, vh);
 
     var onload = function () {
       self.vc.requestInvalidate();
@@ -2532,5 +1925,545 @@ class BackgroundImage {
     };
 
     self.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
+  }
+}
+
+/*******************************************************************************************************/
+/* Infodots & content items                                                                            */
+/*******************************************************************************************************/
+
+/*  Represents an image on a virtual canvas with support of dynamic level of detail.
+@param layerid   (any type) id of the layer for this element
+@param id   (any type) id of an element
+@param vx   (number) x of left top corner in virtual space
+@param vy   (number) y of left top corner in virtual space
+@param vw   (number) width of a bounding box in virtual space
+@param vh   (number) height of a bounding box in virtual space
+@param contentItem ({ id, guid, date (string), title (string), description (string), mediaUrl (string), mediaType (string) }) describes content of this content item
+@remarks Supported media types (contentItem.mediaType) are:
+- image
+- video
+- audio
+- pdf
+*/
+class ContentItem extends CanvasDynamicLOD {
+  constructor(vc, layerid, id, vx, vy, vw, vh, contentItem){
+    super(vc, layerid, id, vx, vy, vw, vh)
+    //this.base = CanvasDynamicLOD;
+    //this.base(vc, layerid, id, vx, vy, vw, vh);
+    this.guid = contentItem.id;
+    this.type = 'contentItem';
+    this.contentItem = contentItem;
+
+    // Building content of the item
+    var titleHeight = vh * constants.contentItemTopTitleHeight * 0.8;
+    var mediaHeight = vh * constants.contentItemMediaHeight;
+    var descrHeight = constants.contentItemFontHeight * vh;
+
+    var contentWidth = vw * constants.contentItemContentWidth;
+    var leftOffset = (vw - contentWidth) / 2.0;
+    var verticalMargin = vh * constants.contentItemVerticalMargin;
+
+    var mediaTop = vy + verticalMargin;
+    var sourceVertMargin = verticalMargin * 0.4;
+    var sourceTop = mediaTop + mediaHeight + sourceVertMargin;
+    var sourceRight = vx + vw - leftOffset;
+    var sourceHeight = vh * constants.contentItemSourceHeight * 0.8;
+    var titleTop = sourceTop + verticalMargin + sourceHeight;
+
+    // Bounding rectangle
+    var rect = this.addRectangle(this, layerid, id + "__rect__", vx, vy, vw, vh, {
+      strokeStyle: constants.contentItemBoundingBoxBorderColor,
+      lineWidth: constants.contentItemBoundingBoxBorderWidth * vw,
+      fillStyle: constants.contentItemBoundingBoxFillColor,
+      isLineWidthVirtual: true
+    });
+    this.reactsOnMouse = true;
+
+    this.onmouseenter = function (e) {
+      rect.settings.strokeStyle = constants.contentItemBoundingHoveredBoxBorderColor;
+      this.vc.currentlyHoveredContentItem = this;
+      this.vc.requestInvalidate();
+    };
+
+    this.onmouseleave = function (e) {
+      rect.settings.strokeStyle = constants.contentItemBoundingBoxBorderColor;
+      this.vc.currentlyHoveredContentItem = null;
+      this.isMouseIn = false;
+      this.vc.requestInvalidate();
+    };
+
+    this.onmouseclick = function (e) {
+      return zoomToElementHandler(this, e, 1.0);
+    };
+
+    this.changeZoomLevel = function (curZl, newZl) {
+      var vy = this.newY;
+      var mediaTop = vy + verticalMargin;
+      var sourceTop = mediaTop + mediaHeight + sourceVertMargin;
+      var titleTop = sourceTop + verticalMargin + sourceHeight;
+
+      if (newZl >= constants.contentItemShowContentZoomLevel) {
+        if (curZl >= constants.contentItemShowContentZoomLevel)
+          return null;
+
+        var container = new ContainerElement(vc, layerid, id + "__content", vx, vy, vw, vh);
+
+        // Media
+        var mediaID = id + "__media__";
+
+        var uri = this.contentItem.uri;
+        this.contentItem.uri = CZ.Service.MakeSecureUri(uri);
+
+        var imageElem = null;
+        if (this.contentItem.mediaType.toLowerCase() === 'image' || this.contentItem.mediaType.toLowerCase() === 'picture') {
+          imageElem = VCContent.addImage(container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, this.contentItem.uri);
+        } else if (this.contentItem.mediaType.toLowerCase() === 'video') {
+          VCContent.addVideo(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
+        } else if (this.contentItem.mediaType.toLowerCase() === 'audio') {
+          mediaTop += constants.contentItemAudioTopMargin * vh;
+          mediaHeight = vh * constants.contentItemAudioHeight;
+          addAudio(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
+        } else if (this.contentItem.mediaType.toLowerCase() === 'pdf') {
+          VCContent.addPdf(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
+        }
+
+        // Title
+        var titleText = this.contentItem.title;
+        addText(container, layerid, id + "__title__", vx + leftOffset, titleTop, titleTop + titleHeight / 2.0, 0.9 * titleHeight, titleText, {
+          fontName: constants.contentItemHeaderFontName,
+          fillStyle: constants.contentItemHeaderFontColor,
+          textBaseline: 'middle',
+          textAlign: 'center',
+          opacity: 1,
+          wrapText: true,
+          numberOfLines: 1
+        }, contentWidth);
+
+        // Source
+        var sourceText = this.contentItem.attribution;
+        var mediaSource = this.contentItem.mediaSource;
+        if (sourceText) {
+          var addSourceText = function (sx, sw, sy) {
+            var sourceItem = addText(container, layerid, id + "__source__", sx, sy, sy + sourceHeight / 2.0, 0.9 * sourceHeight, sourceText, {
+              fontName: constants.contentItemHeaderFontName,
+              fillStyle: constants.contentItemSourceFontColor,
+              textBaseline: 'middle',
+              textAlign: 'right',
+              opacity: 1,
+              adjustWidth: true
+            }, sw);
+
+            if (mediaSource) {
+              sourceItem.reactsOnMouse = true;
+              sourceItem.onmouseclick = function (e) {
+                vc.element.css('cursor', 'default');
+                window.open(mediaSource);
+                return true;
+              };
+              sourceItem.onmouseenter = function (pv, e) {
+                this.settings.fillStyle = constants.contentItemSourceHoveredFontColor;
+                this.vc.requestInvalidate();
+                this.vc.element.css('cursor', 'pointer');
+              };
+              sourceItem.onmouseleave = function (pv, e) {
+                this.settings.fillStyle = constants.contentItemSourceFontColor;
+                this.vc.requestInvalidate();
+                this.vc.element.css('cursor', 'default');
+              };
+            }
+          };
+
+          addSourceText(vx + leftOffset, contentWidth, sourceTop);
+        }
+
+        // Description
+        var descrTop = titleTop + titleHeight + verticalMargin;
+        var descr = addScrollText(container, layerid, id + "__description__", vx + leftOffset, descrTop, contentWidth, descrHeight, this.contentItem.description, 30, {});
+
+        return {
+          zoomLevel: constants.contentItemShowContentZoomLevel,
+          content: container
+        };
+      } else {
+        var zl = newZl;
+        if (zl >= constants.contentItemThumbnailMaxLevel) {
+          if (curZl >= constants.contentItemThumbnailMaxLevel && curZl < constants.contentItemShowContentZoomLevel)
+            return null;
+          zl = constants.contentItemThumbnailMaxLevel;
+        } else if (zl <= constants.contentItemThumbnailMinLevel) {
+          if (curZl <= constants.contentItemThumbnailMinLevel && curZl > 0)
+            return null;
+          zl = constants.contentItemThumbnailMinLevel;
+        }
+        var sz = 1 << zl;
+        var thumbnailUri = constants.contentItemThumbnailBaseUri + 'x' + sz + '/' + contentItem.guid + '.png';
+        thumbnailUri = CZ.Service.MakeSecureUri(thumbnailUri);
+        return {
+          zoomLevel: newZl,
+          content: new CanvasImage(vc, layerid, id + "@" + 1, thumbnailUri, vx, vy, vw, vh)
+        };
+      }
+    };
+
+    this.prototype = new CanvasDynamicLOD(vc, layerid, id, vx, vy, vw, vh);
+  }
+}
+
+/*  An Infodot element that can be added to a VirtualCanvas.
+@param layerid   (any type) id of the layer for this element
+@param id   (any type) id of an element
+@param vx   (number) x of left top corner in virtual space
+@param vy   (number) y of left top corner in virtual space
+@param vw   (number) width of a bounding box in virtual space
+@param vh   (number) height of a bounding box in virtual space
+@param infodotDescription  ({title})
+*/
+class CanvasInfodot extends CanvasCircle {
+  constructor(vc, layerid, id, time, vyc, radv, contentItems, infodotDescription) {
+    super(vc, layerid, id, time, vyc, radv, {
+      strokeStyle: constants.infoDotBorderColor,
+      lineWidth: constants.infoDotBorderWidth * radv,
+      fillStyle: constants.infoDotFillColor,
+      isLineWidthVirtual: true,
+      showCirca: infodotDescription.isCirca
+    })
+
+    this.guid = infodotDescription.guid;
+    this.type = 'infodot';
+
+    this.isBuffered = infodotDescription.isBuffered;
+    this.contentItems = contentItems;
+    this.hasContentItems = false;
+    this.infodotDescription = infodotDescription;
+    this.title = infodotDescription.title;
+    this.isCirca = infodotDescription.isCirca;
+    this.offsetY = infodotDescription.offsetY;
+    this.opacity = typeof infodotDescription.opacity !== 'undefined' ? infodotDescription.opacity : 1;
+
+    contentItems.sort(function (a, b) {
+      if (typeof a.order !== 'undefined' && typeof b.order === 'undefined')
+        return -1;
+      else if (typeof a.order === 'undefined' && typeof b.order !== 'undefined')
+        return 1;
+      else if (typeof a.order === 'undefined' && typeof b.order === 'undefined')
+        return 0;
+      else if (a.order < b.order)
+        return -1;
+      else if (a.order > b.order)
+        return 1;
+
+      else
+        return 0;
+    });
+
+    for (var i = 0; i < contentItems.length; i++) {
+      contentItems[i].order = i;
+    }
+
+    var vyc = this.newY + radv;
+    var innerRad = radv - constants.infoDotHoveredBorderWidth * radv;
+    this.outerRad = radv;
+
+    this.reactsOnMouse = true;
+
+    this.tooltipEnabled = true; // indicates whether tooltip is enabled for this infodot at this moment or not
+    this.tooltipIsShown = false; // indicates whether tooltip is shown or not
+
+    this.onmousehover = function (pv, e) {
+      this.vc.currentlyHoveredInfodot = this;
+      this.vc.requestInvalidate();
+    };
+
+    this.onmouseclick = function (e) {
+      return zoomToElementHandler(this, e, 1.0);
+    };
+
+    this.onmouseenter = function (e) {
+      this.settings.strokeStyle = constants.infoDotHoveredBorderColor;
+      this.settings.lineWidth = constants.infoDotHoveredBorderWidth * radv;
+      this.vc.requestInvalidate();
+
+      // clear tooltipIsShown flag for currently hovered timeline
+      // it can be null because of mouse events sequence: mouseenter for infodot -> mousehover for timeline -> mouseunhover for timeline
+      if (this.vc.currentlyHoveredTimeline != null) {
+        // stop active tooltip fadein animation and hide tooltip
+        //CZ.Common.stopAnimationTooltip();
+        this.vc.currentlyHoveredTimeline.tooltipIsShown = false;
+      }
+
+      $(".bubbleInfo span").text(infodotDescription.title);
+      this.panelWidth = $('.bubbleInfo').outerWidth(); // complete width of tooltip panel
+      this.panelHeight = $('.bubbleInfo').outerHeight(); // complete height of tooltip panel
+
+      //CZ.Common.tooltipMode = "infodot"; //set tooltip mode to infodot
+
+
+      // start tooltip fadein animation for this infodot
+      if ((this.tooltipEnabled == true) && (this.tooltipIsShown == false)) {
+        this.tooltipIsShown = true;
+        $(".bubbleInfo").attr("id", "defaultBox");
+        //CZ.Common.animationTooltipRunning = $('.bubbleInfo').fadeIn();
+      }
+
+      this.vc.cursorPosition = time;
+      this.vc.currentlyHoveredInfodot = this;
+      this.vc._setConstraintsByInfodotHover(this);
+      this.vc.RaiseCursorChanged();
+    };
+
+    this.onmouseleave = function (e) {
+      this.isMouseIn = false;
+      this.settings.strokeStyle = constants.infoDotBorderColor;
+      this.settings.lineWidth = constants.infoDotBorderWidth * radv;
+      this.vc.requestInvalidate();
+
+      // stop active fadein animation and hide tooltip
+      if (this.tooltipIsShown == true)
+        //CZ.Common.stopAnimationTooltip();
+
+      this.tooltipIsShown = false;
+      //CZ.Common.tooltipMode = "default";
+
+      this.vc.currentlyHoveredInfodot = undefined;
+      this.vc._setConstraintsByInfodotHover(undefined);
+      this.vc.RaiseCursorChanged();
+    };
+
+    this.onmouseclick = function (e) {
+      return zoomToElementHandler(this, e, 1.0);
+    };
+
+    //Bibliography flag accroding to BUG 215750
+    var bibliographyFlag = true;
+
+    // Building dynamic LOD content
+    var infodot = this;
+    var root = new CanvasDynamicLOD(vc, layerid, id + "_dlod", time - innerRad, vyc - innerRad, 2 * innerRad, 2 * innerRad);
+    root.removeWhenInvisible = true;
+    VCContent.addChild(this, root, false);
+
+    root.firstLoad = true;
+    root.changeZoomLevel = function (curZl, newZl) {
+      var vyc = infodot.newY + radv;
+
+      // Showing only thumbnails for every content item of the infodot
+      if (newZl >= constants.infodotShowContentThumbZoomLevel && newZl < constants.infodotShowContentZoomLevel) {
+        var URL = CZ.UrlNav.getURL();
+        if (typeof URL.hash.params != 'undefined' && typeof URL.hash.params['b'] != 'undefined')
+          bibliographyFlag = false;
+
+        if (curZl >= constants.infodotShowContentThumbZoomLevel && curZl < constants.infodotShowContentZoomLevel)
+          return null;
+
+        // Tooltip is enabled now.
+        infodot.tooltipEnabled = true;
+
+        var contentItem = null;
+
+        if (infodot.contentItems.length > 0) {
+          contentItem = new ContainerElement(vc, layerid, id + "__contentItems", root.x, root.newY, 2 * innerRad, 2 * innerRad);
+          var items = buildVcContentItems(infodot.contentItems, time, vyc, innerRad, vc, layerid);
+          if (items)
+            for (var i = 0; i < items.length; i++)
+              addChild(contentItem, items[i], false);
+        }
+
+        if (contentItem) {
+          infodot.hasContentItems = true;
+          return {
+            zoomLevel: newZl,
+            content: contentItem
+          };
+        }
+        else
+          return null;
+      } else if (newZl >= constants.infodotShowContentZoomLevel) {
+        if (curZl >= constants.infodotShowContentZoomLevel)
+          return null;
+
+        // Tooltip is disabled now.
+        infodot.tooltipEnabled = false;
+
+        // stop active fadein animation and hide tooltip
+        if (infodot.tooltipIsShown == true) {
+          //CZ.Common.stopAnimationTooltip();
+          infodot.tooltipIsShown = false;
+        }
+
+        var contentItem = null;
+
+        if (infodot.contentItems.length > 0) {
+          contentItem = new ContainerElement(vc, layerid, id + "__contentItems", root.x, root.y, 2 * innerRad, 2 * innerRad);
+          var items = buildVcContentItems(infodot.contentItems, time, vyc, innerRad, vc, layerid);
+          if (items)
+            for (var i = 0; i < items.length; i++)
+              addChild(contentItem, items[i], false);
+        }
+        if (contentItem == null)
+          return null;
+
+        var titleWidth = constants.infodotTitleWidth * radv * 2;
+        var titleHeight = constants.infodotTitleHeight * radv * 2;
+        var centralSquareSize = (270 / 2 + 5) / 450 * 2 * radv;
+        var titleTop = vyc - centralSquareSize - titleHeight;
+        var title = '';
+
+        if (infodotDescription && infodotDescription.title && infodotDescription.date) {
+          var exhibitDate = CZ.Dates.convertCoordinateToYear(infodotDescription.date);
+          if ((exhibitDate.regime == "CE") || (exhibitDate.regime == "BCE")) {
+            var date_number = Number(infodotDescription.date);
+            var exhibitDate = CZ.Dates.convertCoordinateToYear(date_number);
+            var exhibitYMD = CZ.Dates.getYMDFromCoordinate(date_number);
+            date_number = Math.abs(date_number);
+            if (date_number == Math.floor(date_number)) {
+              title = infodotDescription.title + '\n(' + parseFloat((date_number).toFixed(2)) + ' ' + exhibitDate.regime + ')';
+            } else {
+              title = infodotDescription.title + '\n(' + exhibitYMD.year + "." + (exhibitYMD.month + 1) + "." + exhibitYMD.day + ' ' + exhibitDate.regime + ')';
+            }
+          } else {
+            // Format year title with fixed precision
+            title = infodotDescription.title + '\n(' + parseFloat(exhibitDate.year.toFixed(2)) + ' ' + exhibitDate.regime + ')';
+          }
+        }
+
+        var infodotTitle = addText(contentItem, layerid, id + "__title", time - titleWidth / 2, titleTop, titleTop, titleHeight, title, {
+          fontName: constants.contentItemHeaderFontName,
+          fillStyle: constants.contentItemHeaderFontColor,
+          textBaseline: 'middle',
+          textAlign: 'center',
+          opacity: 1,
+          wrapText: true,
+          numberOfLines: 2
+        }, titleWidth);
+
+        var imageSize = (titleTop - infodot.y) * 0.75;
+
+        /*copyButton.reactsOnMouse = true;
+
+        copyButton.onmouseclick = function () {
+          CZ.Service.exportExhibit(this.parent.guid).then(function (exportData) {
+            localStorage.setItem('ExportedSchemaVersion', constants.schemaVersion);
+            localStorage.setItem('ExportedExhibit', JSON.stringify(exportData));
+            localStorage.removeItem('ExportedTimeline');
+            CZ.Authoring.showMessageWindow('"' + exportData.title + '" has been copied to your clip-board. You can paste this into a different timeline.');
+          });
+          return true;
+        };
+
+        copyButton.onmouseenter = function () {
+          this.vc.element.css('cursor', 'pointer');
+          this.vc.element.attr('title', 'Copy Exhibit to Clipboard');
+          infodot.settings.strokeStyle = "yellow";
+        };
+
+        copyButton.onmouseleave = function () {
+          this.vc.element.css('cursor', 'default');
+          this.vc.element.attr('title', '');
+          infodot.settings.strokeStyle = constants.infoDotBorderColor;
+        };*/
+
+        if (contentItem) {
+          infodot.hasContentItems = true;
+          return {
+            zoomLevel: newZl,
+            content: contentItem
+          };
+        }
+      } else {
+        // Tooltip is enabled now.
+        infodot.tooltipEnabled = true;
+
+        infodot.hasContentItems = false;
+        if (infodot.contentItems.length == 0)
+          return null;
+
+        var zl = newZl;
+
+        if (zl <= constants.contentItemThumbnailMinLevel) {
+          if (curZl <= constants.contentItemThumbnailMinLevel && curZl > 0)
+            return null;
+        }
+        if (zl >= constants.contentItemThumbnailMaxLevel) {
+          if (curZl >= constants.contentItemThumbnailMaxLevel && curZl < constants.infodotShowContentZoomLevel)
+            return null;
+          zl = constants.contentItemThumbnailMaxLevel;
+        }
+        if (zl < constants.contentItemThumbnailMinLevel) {
+          return {
+            zoomLevel: zl,
+            content: new ContainerElement(vc, layerid, id + "__empty", time, vyc, 0, 0)
+          };
+        }
+        var contentItem = infodot.contentItems[0];
+        var sz = 1 << zl;
+        var thumbnailUri = constants.contentItemThumbnailBaseUri + 'x' + sz + '/' + contentItem.guid + '.png';
+        var l = innerRad * 260 / 225;
+        return {
+          zoomLevel: zl,
+          content: new CanvasImage(vc, layerid, id + "@" + zl, thumbnailUri, time - l / 2.0, vyc - l / 2.0, l, l)
+        };
+      }
+    };
+
+    // Applying Jessica's proportions
+    var _rad = 450.0 / 2.0;
+    var k = 1.0 / _rad;
+    var _wc = (252.0 + 0) * k;
+    var _hc = (262.0 + 0) * k;
+    var strokeWidth = 3 * k * radv;
+    var strokeLength = 24.0 * k * radv;
+    var xlt0 = -_wc / 2 * radv + time;
+    var ylt0 = -_hc / 2 * radv + vyc;
+    var xlt1 = _wc / 2 * radv + time;
+    var ylt1 = _hc / 2 * radv + vyc;
+
+    /* Renders an infodot.
+    @param ctx              (context2d) Canvas context2d to render on.
+    @param visibleBox_v     ({Left,Right,Top,Bottom}) describes visible region in the virtual space
+    @param viewport2d       (Viewport2d) current viewport
+    @param size_p           ({x,y}) size of bounding box of this element in pixels
+    @remarks The method is implemented for each particular VirtualCanvas element.
+    */
+    this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
+      this.prototype.render.call(this, ctx, visibleBox, viewport2d, size_p, opacity); // rendering the circle
+
+      var sw = viewport2d.widthVirtualToScreen(strokeWidth);
+      if (sw < 0.5)
+        return;
+
+      var vyc = infodot.y + radv;
+      var xlt0 = -_wc / 2 * radv + time;
+      var ylt0 = -_hc / 2 * radv + vyc;
+      var xlt1 = _wc / 2 * radv + time;
+      var ylt1 = _hc / 2 * radv + vyc;
+
+      var rad = this.width / 2.0;
+      var xc = this.x + rad;
+      var yc = this.y + rad;
+      var radp = size_p.x / 2.0;
+
+      var sl = viewport2d.widthVirtualToScreen(strokeLength);
+      var pl0 = viewport2d.pointVirtualToScreen(xlt0, ylt0);
+      var pl1 = viewport2d.pointVirtualToScreen(xlt1, ylt1);
+
+      ctx.lineWidth = sw;
+      ctx.strokeStyle = constants.contentItemBoundingBoxFillColor;
+    };
+
+    /* Checks whether the given point (virtual) is inside the object
+    (should take into account the shape) */
+    this.isInside = function (point_v) {
+      var len2 = utils.sqr(point_v.x - this.x - (this.width / 2)) + utils.sqr(point_v.y - this.y - (this.height / 2));
+      var rad = this.width / 2.0;
+      return len2 <= rad * rad;
+    };
+
+    this.prototype = new CanvasCircle(vc, layerid, id, time, vyc, radv, {
+      strokeStyle: constants.infoDotBorderColor,
+      lineWidth: constants.infoDotBorderWidth * radv,
+      fillStyle: constants.infoDotFillColor,
+      isLineWidthVirtual: true
+    });
   }
 }

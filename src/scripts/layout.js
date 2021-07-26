@@ -1,7 +1,7 @@
 import * as constants from './constants';
 import * as dates from './dates';
 import { VisibleRegion2d } from './viewport';
-import { VCContent, CanvasRootElement, addTimeline } from './vccontent';
+import { VCContent, CanvasRootElement, addTimeline, addInfodot } from './vccontent';
 import { animationEase } from './viewport-animation';
 
 export default class Layout {
@@ -739,8 +739,7 @@ export default class Layout {
               contentItems[i].guid = contentItems[i].id;
             }
           }
-
-          var infodot1 = VCContent.addInfodot(
+          var infodot1 = addInfodot(
             t1,
             'layerInfodots',
             'e' + childInfodot.id,

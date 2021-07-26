@@ -32,7 +32,7 @@ $(document).ready(() => {
       end: 9999,
       title: 'Data',
       regime: 'Cosmos',
-      exhibits: [],
+      exhibits: [{}, {}, {}],
       timelines: [],
     };
 
