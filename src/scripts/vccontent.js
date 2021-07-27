@@ -125,6 +125,108 @@ const drawText = (text, ctx, x, y, fontSize, fontName) => {
   ctx.scale(1 / s, 1 / s);
 };
 
+/* 
+  Gets the zoom level for the given size of an element (in pixels).
+  @param size_p       ({x,y}) size of bounding box of this element in pixels
+  @returns (number)   zoom level which minimum natural number or zero zl so that max(size_p.x,size_p.y) <= 2^zl
+*/
+const getZoomLevel = (size_p) => {
+  var sz = Math.max(size_p.x, size_p.y);
+  if (sz <= 1)
+    return 0;
+  var zl = (sz & 1) ? 1 : 0;
+  for (var i = 1; i < 32; i++) {
+    sz = sz >>> 1;
+    if (sz & 1) {
+      if (zl > 0)
+        zl = i + 1;
+      else
+        zl = i;
+    }
+  }
+  return zl;
+}
+
+const buildVcContentItems = (contentItems, xc, yc, rad, vc, layerid) => {
+  var n = contentItems.length;
+  if (n <= 0)
+    return null;
+
+  var _rad = 450.0 / 2.0;
+  var k = 1.0 / _rad;
+  var _wc = 260.0 * k;
+  var _hc = 270.0 * k;
+
+  var _xlc = -_wc / 2 - 38.0 * k;
+  var _xrc = -_xlc;
+  var _lw = 60.0 * k;
+  var _lh = _lw;
+  var lw = _lw * rad;
+  var lh = _lh * rad;
+
+  var _ytc = -_hc / 2 - 9.0 * k - _lh / 2;
+  var _ybc = -_ytc;
+
+  var arrangeLeft = arrangeContentItemsInField(3, _lh);
+  var arrangeRight = arrangeContentItemsInField(3, _lh);
+  var arrangeBottom = arrangeContentItemsInField(3, _lw);
+
+  var xl = xc + rad * (_xlc - _lw / 2);
+  var xr = xc + rad * (_xrc - _lw / 2);
+  var yb = yc + rad * (_ybc - _lh / 2);
+
+  // build content items
+  var vcitems = [];
+
+  for (var i = 0, len = Math.min(constants.infodotMaxContentItemsCount, n); i < len; i++) {
+    var ci = contentItems[i];
+    if (i === 0) {
+      vcitems.push(new ContentItem(vc, layerid, ci.id, -_wc / 2 * rad + xc, -_hc / 2 * rad + yc, _wc * rad, _hc * rad, ci));
+    } else if (i >= 1 && i <= 3) {
+      vcitems.push(new ContentItem(vc, layerid, ci.id, xl, yc + rad * arrangeLeft[(i - 1) % 3], lw, lh, ci));
+    } else if (i >= 4 && i <= 6) {
+      vcitems.push(new ContentItem(vc, layerid, ci.id, xr, yc + rad * arrangeRight[(i - 1) % 3], lw, lh, ci));
+    } else if (i >= 7 && i <= 9) {
+      vcitems.push(new ContentItem(vc, layerid, ci.id, xc + rad * arrangeBottom[(i - 1) % 3], yb, lw, lh, ci));
+    }
+  }
+
+  return vcitems;
+}
+
+/* 
+  Arranges given number of content items in a single part of an infodot, along a single coordinate axis (either x or y).
+  @param n    (number) Number of content items to arrange
+  @param dx   (number) Size of content item along the axis on which we arrange content items.
+  @returns null, if n is 0; array of lefts (tops) for each coordinate item. 
+*/
+const arrangeContentItemsInField = (n, dx) => {
+  if (n == 0)
+    return null;
+  var margin = 0.05 * dx;
+  var x1, x2, x3, x4;
+  if (n % 2 == 0) {
+    // 3 1 2 4
+    x1 = -margin / 2 - dx;
+    x2 = margin / 2;
+    if (n == 4) {
+      x3 = x1 - dx - margin;
+      x4 = x2 + margin + dx;
+      return [x3, x1, x2, x4];
+    }
+    return [x1, x2];
+  } else {
+    // 3 1 2
+    x1 = -dx / 2;
+    if (n > 1) {
+      x2 = dx / 2 + margin;
+      x3 = x1 - dx - margin;
+      return [x3, x1, x2];
+    }
+    return [x1];
+  }
+}
+
 /*
   Adds a timeline composite element into a virtual canvas.
   @param element   (CanvasElement) Parent element, whose children is to be new timeline.
@@ -198,11 +300,11 @@ export const addInfodot = (element, layerid, id, time, vyc, radv, contentItems, 
 */
 export const addText = (element, layerid, id, vx, vy, baseline, vh, text, settings, vw) => {
   return addChild(element, new CanvasText(element.vc, layerid, id, vx, vy, baseline, vh, text, settings, vw), false);
-}
+};
 
 export const addScrollText = (element, layerid, id, vx, vy, vw, vh, text, z, settings) => {
   return addChild(element, new CanvasScrollTextItem(element.vc, layerid, id, vx, vy, vw, vh, text, z), false);
-}
+};
 
 /*
   Adds a rectangle as a child of the given virtual canvas element.
@@ -418,29 +520,6 @@ export class VCContent {
       throw "There is no child with id [" + id + "]";
     }
 
-    /*****************************************************************************************/
-    /* Dynamic Level of Details element                                                      */
-    /* Gets the zoom level for the given size of an element (in pixels).
-    @param size_p           ({x,y}) size of bounding box of this element in pixels
-    @returns (number)   zoom level which minimum natural number or zero zl so that max(size_p.x,size_p.y) <= 2^zl
-    */
-    function getZoomLevel(size_p) {
-      var sz = Math.max(size_p.x, size_p.y);
-      if (sz <= 1)
-        return 0;
-      var zl = (sz & 1) ? 1 : 0;
-      for (var i = 1; i < 32; i++) {
-        sz = sz >>> 1;
-        if (sz & 1) {
-          if (zl > 0)
-            zl = i + 1;
-          else
-            zl = i;
-        }
-      }
-      return zl;
-    }
-
     /*A popup window element
      */
     function addPopupWindow(url, id, width, height, scrollbars, resizable) {
@@ -479,84 +558,6 @@ export class VCContent {
           };
       }
       return null;
-    }
-
-    function buildVcContentItems(contentItems, xc, yc, rad, vc, layerid) {
-      var n = contentItems.length;
-      if (n <= 0)
-        return null;
-
-      var _rad = 450.0 / 2.0;
-      var k = 1.0 / _rad;
-      var _wc = 260.0 * k;
-      var _hc = 270.0 * k;
-
-      var _xlc = -_wc / 2 - 38.0 * k;
-      var _xrc = -_xlc;
-      var _lw = 60.0 * k;
-      var _lh = _lw;
-      var lw = _lw * rad;
-      var lh = _lh * rad;
-
-      var _ytc = -_hc / 2 - 9.0 * k - _lh / 2;
-      var _ybc = -_ytc;
-
-      var arrangeLeft = arrangeContentItemsInField(3, _lh);
-      var arrangeRight = arrangeContentItemsInField(3, _lh);
-      var arrangeBottom = arrangeContentItemsInField(3, _lw);
-
-      var xl = xc + rad * (_xlc - _lw / 2);
-      var xr = xc + rad * (_xrc - _lw / 2);
-      var yb = yc + rad * (_ybc - _lh / 2);
-
-      // build content items
-      var vcitems = [];
-
-      for (var i = 0, len = Math.min(constants.infodotMaxContentItemsCount, n); i < len; i++) {
-        var ci = contentItems[i];
-        if (i === 0) {
-          vcitems.push(new ContentItem(vc, layerid, ci.id, -_wc / 2 * rad + xc, -_hc / 2 * rad + yc, _wc * rad, _hc * rad, ci));
-        } else if (i >= 1 && i <= 3) {
-          vcitems.push(new ContentItem(vc, layerid, ci.id, xl, yc + rad * arrangeLeft[(i - 1) % 3], lw, lh, ci));
-        } else if (i >= 4 && i <= 6) {
-          vcitems.push(new ContentItem(vc, layerid, ci.id, xr, yc + rad * arrangeRight[(i - 1) % 3], lw, lh, ci));
-        } else if (i >= 7 && i <= 9) {
-          vcitems.push(new ContentItem(vc, layerid, ci.id, xc + rad * arrangeBottom[(i - 1) % 3], yb, lw, lh, ci));
-        }
-      }
-
-      return vcitems;
-    }
-
-    /* Arranges given number of content items in a single part of an infodot, along a single coordinate axis (either x or y).
-    @param n    (number) Number of content items to arrange
-    @param dx   (number) Size of content item along the axis on which we arrange content items.
-    @returns null, if n is 0; array of lefts (tops) for each coordinate item. */
-    function arrangeContentItemsInField(n, dx) {
-      if (n == 0)
-        return null;
-      var margin = 0.05 * dx;
-      var x1, x2, x3, x4;
-      if (n % 2 == 0) {
-        // 3 1 2 4
-        x1 = -margin / 2 - dx;
-        x2 = margin / 2;
-        if (n == 4) {
-          x3 = x1 - dx - margin;
-          x4 = x2 + margin + dx;
-          return [x3, x1, x2, x4];
-        }
-        return [x1, x2];
-      } else {
-        // 3 1 2
-        x1 = -dx / 2;
-        if (n > 1) {
-          x2 = dx / 2 + margin;
-          x3 = x1 - dx - margin;
-          return [x3, x1, x2];
-        }
-        return [x1];
-      }
     }
   }
 }
@@ -613,7 +614,48 @@ export class CanvasElement {
     @param opacity          (float in [0,1]) 0 means transparent, 1 means opaque.
     @remarks The method is implemented for each particular VirtualCanvas element.
     */
-    this.render = function (ctx, visibleBox_v, viewport2d, size_p, opacity) {};
+    //this.render = function (ctx, visibleBox_v, viewport2d, size_p, opacity) {};
+    /* Renders a CanvasElement recursively
+    @param element          (CanvasElement) element to render
+    @param contexts         (map<layerid,context2d>) Contexts for layers' canvases.
+    @param visibleBox_v     ({Left,Right,Top,Bottom}) describes visible region in the virtual space
+    @param viewport2d       (Viewport2d) current viewport
+    @param opacity          (float in [0,1]) 0 means transparent, 1 means opaque.
+    */
+    this.render = function (element, contexts, visibleBox_v, viewport2d, opacity) {
+      if (!element.isVisible(visibleBox_v)) {
+          if (element.isRendered)
+              turnIsRenderedOff(element);
+          return;
+      }
+
+      var sz = viewport2d.vectorVirtualToScreen(element.width, element.height);
+      if (sz.y <= CZ.Settings.renderThreshold || (element.width != 0 && sz.x <= CZ.Settings.renderThreshold)) {
+          if (element.isRendered)
+              turnIsRenderedOff(element);
+          return;
+      }
+
+      var ctx = contexts[element.layerid];
+      if (element.opacity != null) {
+          opacity *= element.opacity;
+      }
+
+      // Rendering an element
+      if (element.isRendered == undefined || !element.isRendered) {
+          element.isRendered = true;
+          if (element.onIsRenderedChanged)
+              element.onIsRenderedChanged();
+      }
+
+      element.render(ctx, visibleBox_v, viewport2d, sz, opacity);
+
+      var children = element.children;
+      var n = children.length;
+      for (var i = 0; i < n; i++) {
+          this.render(children[i], contexts, visibleBox_v, viewport2d, opacity);
+      }
+    };
   }
 }
 
@@ -631,6 +673,8 @@ class CanvasDynamicLOD extends CanvasElement {
     this.asyncContent = null;
     this.lastRenderTime = 0;
 
+    var self = this;
+
     /* Returns new content elements tree for the given zoom level, if it should change, or null.
     @returns { zoomLevel: number, content: CanvasElement}, or null.
     */
@@ -639,28 +683,28 @@ class CanvasDynamicLOD extends CanvasElement {
     };
 
     var startTransition = function (newContent) {
-      this.lastRenderTime = new Date();
+      self.lastRenderTime = new Date();
 
-      this.prevContent = this.content;
-      this.content = newContent.content;
-      addChild(this, this.content, false);
+      self.prevContent = self.content;
+      self.content = newContent.content;
+      addChild(self, self.content, false);
 
-      if (this.prevContent) {
-        if (!this.prevContent.opacity)
-        this.prevContent.opacity = 1.0;
-        this.content.opacity = 0.0;
+      if (self.prevContent) {
+          if (!self.prevContent.opacity)
+              self.prevContent.opacity = 1.0;
+          self.content.opacity = 0.0;
       }
-      this.zoomLevel = newContent.zoomLevel;
-    };
+      self.zoomLevel = newContent.zoomLevel;
+  };
 
-    var onAsyncContentLoaded = function () {
-      if (this.asyncContent) {
-        startTransition(this.asyncContent);
-        this.asyncContent = null;
-        delete this.onLoad;
-        this.vc.requestInvalidate();
+  var onAsyncContentLoaded = function () {
+      if (self.asyncContent) {
+          startTransition(self.asyncContent);
+          self.asyncContent = null;
+          delete this.onLoad;
+          self.vc.requestInvalidate();
       }
-    };
+  };
 
     /* Renders a rectangle.
     @param ctx              (context2d) Canvas context2d to render on.
@@ -1152,9 +1196,9 @@ class CanvasTimeline extends CanvasRectangle {
       }
 
       // Rendering background.
-      if (typeof self.backgroundImg !== "undefined") {
+      /*if (typeof self.backgroundImg !== "undefined") {
         this.backgroundImg.render(ctx, visibleBox, viewport2d, size_p, 1.0);
-      }
+      }*/
 
       this.base_render(ctx, visibleBox, viewport2d, size_p, opacity);
 
@@ -1208,6 +1252,7 @@ class CanvasCircle extends CanvasElement {
         ctx.setLineDash([6, 3]);
       }
 
+      console.log(ctx);
       ctx.globalAlpha = opacity;
       ctx.beginPath();
       ctx.arc(p.x, p.y, radp, 0, Math.PI * 2, true);
@@ -1242,7 +1287,7 @@ class CanvasCircle extends CanvasElement {
       return len2 <= vradius * vradius;
     };
 
-    this.prototype = new CanvasElement(vc, layerid, id, vxc - vradius / 2, vyc - vradius / 2, vradius, vradius);
+    //this.prototype = new CanvasElement(vc, layerid, id, vxc - vradius / 2, vyc - vradius / 2, vradius, vradius);
   }
 }
 
@@ -1446,7 +1491,7 @@ class CanvasText extends CanvasElement {
 @remarks
 Text width is adjusted using measureText() on first render call.
 */
-class CanvasMultiLineTextItem extends CanvasElement{
+class CanvasMultiLineTextItem extends CanvasElement {
   constructor(vc, layerid, id, vx, vy, vh, text, lineWidth, settings) {
     super(vc, layerid, id, vx, vy, vh * 10, vh); // todo: measure properly text width
 
@@ -1561,7 +1606,7 @@ class CanvasImage extends CanvasElement {
     if (onload)
       this.img.addEventListener("load", onload, false);
     this.img.addEventListener("error", onCanvasImageLoadError, false);
-    this.img.src = imageSource; // todo: stop image loading if it is not needed anymore (see http://stackoverflow.com/questions/1339901/stop-loading-of-images-with-javascript-lazyload)
+    //this.img.src = imageSource; // todo: stop image loading if it is not needed anymore (see http://stackoverflow.com/questions/1339901/stop-loading-of-images-with-javascript-lazyload)
 
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
       if (!this.img.isLoaded)
@@ -1737,11 +1782,11 @@ class CanvasScrollTextItem extends CanvasDomItem {
       var fontSize = size_p.y / constants.contentItemDescriptionNumberOfLines;
       elem.css('font-size', fontSize + "px");
 
-      this.prototype.render.call(this, ctx, visibleBox, viewport2d, size_p, opacity);
+      //super.render.call(this, ctx, visibleBox, viewport2d, size_p, opacity);
     };
 
     this.onRemove = function () {
-      this.prototype.onRemove.call(this);
+      //super.onRemove.call(this);
       elem[0].removeEventListener("mousemove", utils.preventBubble, false);
       elem[0].removeEventListener("mouseup", utils.preventBubble, false);
       elem[0].removeEventListener("mousedown", utils.preventBubble, false);
@@ -1806,9 +1851,9 @@ class CanvasVideoItem extends CanvasDomItem {
     elem.setAttribute("id", id);
     if (videoSrc.indexOf('?') == -1)
       videoSrc += '?wmode=opaque';
-
     else
       videoSrc += '&wmode=opaque';
+
     elem.setAttribute("src", videoSrc);
     elem.setAttribute("visible", 'true');
     elem.setAttribute("controls", 'true');
@@ -1920,19 +1965,20 @@ class BackgroundImage extends CanvasElement {
 /* Infodots & content items                                                                            */
 /*******************************************************************************************************/
 
-/*  Represents an image on a virtual canvas with support of dynamic level of detail.
-@param layerid   (any type) id of the layer for this element
-@param id   (any type) id of an element
-@param vx   (number) x of left top corner in virtual space
-@param vy   (number) y of left top corner in virtual space
-@param vw   (number) width of a bounding box in virtual space
-@param vh   (number) height of a bounding box in virtual space
-@param contentItem ({ id, guid, date (string), title (string), description (string), mediaUrl (string), mediaType (string) }) describes content of this content item
-@remarks Supported media types (contentItem.mediaType) are:
-- image
-- video
-- audio
-- pdf
+/*  
+  Represents an image on a virtual canvas with support of dynamic level of detail.
+  @param layerid   (any type) id of the layer for this element
+  @param id   (any type) id of an element
+  @param vx   (number) x of left top corner in virtual space
+  @param vy   (number) y of left top corner in virtual space
+  @param vw   (number) width of a bounding box in virtual space
+  @param vh   (number) height of a bounding box in virtual space
+  @param contentItem ({ id, guid, date (string), title (string), description (string), mediaUrl (string), mediaType (string) }) describes content of this content item
+  @remarks Supported media types (contentItem.mediaType) are:
+  - image
+  - video
+  - audio
+  - pdf
 */
 class ContentItem extends CanvasDynamicLOD {
   constructor(vc, layerid, id, vx, vy, vw, vh, contentItem){
@@ -1959,7 +2005,7 @@ class ContentItem extends CanvasDynamicLOD {
     var titleTop = sourceTop + verticalMargin + sourceHeight;
 
     // Bounding rectangle
-    var rect = this.addRectangle(this, layerid, id + "__rect__", vx, vy, vw, vh, {
+    var rect = addRectangle(this, layerid, id + "__rect__", vx, vy, vw, vh, {
       strokeStyle: constants.contentItemBoundingBoxBorderColor,
       lineWidth: constants.contentItemBoundingBoxBorderWidth * vw,
       fillStyle: constants.contentItemBoundingBoxFillColor,
@@ -2000,7 +2046,7 @@ class ContentItem extends CanvasDynamicLOD {
         var mediaID = id + "__media__";
 
         var uri = this.contentItem.uri;
-        this.contentItem.uri = CZ.Service.MakeSecureUri(uri);
+        //this.contentItem.uri = CZ.Service.MakeSecureUri(uri);
 
         var imageElem = null;
         if (this.contentItem.mediaType.toLowerCase() === 'image' || this.contentItem.mediaType.toLowerCase() === 'picture') {
@@ -2085,7 +2131,7 @@ class ContentItem extends CanvasDynamicLOD {
         }
         var sz = 1 << zl;
         var thumbnailUri = constants.contentItemThumbnailBaseUri + 'x' + sz + '/' + contentItem.guid + '.png';
-        thumbnailUri = CZ.Service.MakeSecureUri(thumbnailUri);
+        //thumbnailUri = CZ.Service.MakeSecureUri(thumbnailUri);
         return {
           zoomLevel: newZl,
           content: new CanvasImage(vc, layerid, id + "@" + 1, thumbnailUri, vx, vy, vw, vh)
@@ -2222,7 +2268,7 @@ class CanvasInfodot extends CanvasCircle {
     };
 
     //Bibliography flag accroding to BUG 215750
-    var bibliographyFlag = true;
+    //var bibliographyFlag = true;
 
     // Building dynamic LOD content
     var root = new CanvasDynamicLOD(vc, layerid, id + "_dlod", time - innerRad, vyc - innerRad, 2 * innerRad, 2 * innerRad);
@@ -2235,9 +2281,9 @@ class CanvasInfodot extends CanvasCircle {
 
       // Showing only thumbnails for every content item of the infodot
       if (newZl >= constants.infodotShowContentThumbZoomLevel && newZl < constants.infodotShowContentZoomLevel) {
-        var URL = CZ.UrlNav.getURL();
-        if (typeof URL.hash.params != 'undefined' && typeof URL.hash.params['b'] != 'undefined')
-          bibliographyFlag = false;
+        //var URL = CZ.UrlNav.getURL();
+        //if (typeof URL.hash.params != 'undefined' && typeof URL.hash.params['b'] != 'undefined')
+          //bibliographyFlag = false;
 
         if (curZl >= constants.infodotShowContentThumbZoomLevel && curZl < constants.infodotShowContentZoomLevel)
           return null;
@@ -2246,10 +2292,9 @@ class CanvasInfodot extends CanvasCircle {
         this.tooltipEnabled = true;
 
         var contentItem = null;
-
-        if (this.contentItems.length > 0) {
+        if (contentItems.length > 0) {
           contentItem = new ContainerElement(vc, layerid, id + "__contentItems", root.x, root.newY, 2 * innerRad, 2 * innerRad);
-          var items = buildVcContentItems(this.contentItems, time, vyc, innerRad, vc, layerid);
+          var items = buildVcContentItems(contentItems, time, vyc, innerRad, vc, layerid);
           if (items)
             for (var i = 0; i < items.length; i++)
               addChild(contentItem, items[i], false);
@@ -2279,9 +2324,9 @@ class CanvasInfodot extends CanvasCircle {
 
         var contentItem = null;
 
-        if (this.contentItems.length > 0) {
+        if (ontentItems.length > 0) {
           contentItem = new ContainerElement(vc, layerid, id + "__contentItems", root.x, root.y, 2 * innerRad, 2 * innerRad);
-          var items = buildVcContentItems(this.contentItems, time, vyc, innerRad, vc, layerid);
+          var items = buildVcContentItems(contentItems, time, vyc, innerRad, vc, layerid);
           if (items)
             for (var i = 0; i < items.length; i++)
               addChild(contentItem, items[i], false);
@@ -2296,11 +2341,11 @@ class CanvasInfodot extends CanvasCircle {
         var title = '';
 
         if (infodotDescription && infodotDescription.title && infodotDescription.date) {
-          var exhibitDate = CZ.Dates.convertCoordinateToYear(infodotDescription.date);
+          var exhibitDate = dates.convertCoordinateToYear(infodotDescription.date);
           if ((exhibitDate.regime == "CE") || (exhibitDate.regime == "BCE")) {
             var date_number = Number(infodotDescription.date);
-            var exhibitDate = CZ.Dates.convertCoordinateToYear(date_number);
-            var exhibitYMD = CZ.Dates.getYMDFromCoordinate(date_number);
+            var exhibitDate = dates.convertCoordinateToYear(date_number);
+            var exhibitYMD = dates.getYMDFromCoordinate(date_number);
             date_number = Math.abs(date_number);
             if (date_number == Math.floor(date_number)) {
               title = infodotDescription.title + '\n(' + parseFloat((date_number).toFixed(2)) + ' ' + exhibitDate.regime + ')';
@@ -2337,7 +2382,7 @@ class CanvasInfodot extends CanvasCircle {
         this.tooltipEnabled = true;
 
         this.hasContentItems = false;
-        if (this.contentItems.length == 0)
+        if (contentItems.length == 0)
           return null;
 
         var zl = newZl;
@@ -2357,7 +2402,7 @@ class CanvasInfodot extends CanvasCircle {
             content: new ContainerElement(vc, layerid, id + "__empty", time, vyc, 0, 0)
           };
         }
-        var contentItem = this.contentItems[0];
+        var contentItem = contentItems[0];
         var sz = 1 << zl;
         var thumbnailUri = constants.contentItemThumbnailBaseUri + 'x' + sz + '/' + contentItem.guid + '.png';
         var l = innerRad * 260 / 225;
@@ -2388,6 +2433,7 @@ class CanvasInfodot extends CanvasCircle {
     @remarks The method is implemented for each particular VirtualCanvas element.
     */
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
+      //super.render.call(this, ctx, visibleBox, viewport2d, size_p, opacity);
       this.prototype.render.call(this, ctx, visibleBox, viewport2d, size_p, opacity); // rendering the circle
 
       var sw = viewport2d.widthVirtualToScreen(strokeWidth);
