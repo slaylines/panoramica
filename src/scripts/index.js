@@ -29,7 +29,7 @@ $(document).ready(() => {
     const data = {
       id: "00000000-0000-0000-0000-000000000000",
       start: -13800000000,
-      end: 9999,
+      end: 13800000000,
       title: 'Data',
       regime: 'Cosmos',
       exhibits: [{}, {}, {}],

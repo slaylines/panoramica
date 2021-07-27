@@ -2225,14 +2225,13 @@ class CanvasInfodot extends CanvasCircle {
     var bibliographyFlag = true;
 
     // Building dynamic LOD content
-    var infodot = this;
     var root = new CanvasDynamicLOD(vc, layerid, id + "_dlod", time - innerRad, vyc - innerRad, 2 * innerRad, 2 * innerRad);
     root.removeWhenInvisible = true;
     addChild(this, root, false);
 
     root.firstLoad = true;
     root.changeZoomLevel = function (curZl, newZl) {
-      var vyc = infodot.newY + radv;
+      var vyc = this.newY + radv;
 
       // Showing only thumbnails for every content item of the infodot
       if (newZl >= constants.infodotShowContentThumbZoomLevel && newZl < constants.infodotShowContentZoomLevel) {
@@ -2244,20 +2243,20 @@ class CanvasInfodot extends CanvasCircle {
           return null;
 
         // Tooltip is enabled now.
-        infodot.tooltipEnabled = true;
+        this.tooltipEnabled = true;
 
         var contentItem = null;
 
-        if (infodot.contentItems.length > 0) {
+        if (this.contentItems.length > 0) {
           contentItem = new ContainerElement(vc, layerid, id + "__contentItems", root.x, root.newY, 2 * innerRad, 2 * innerRad);
-          var items = buildVcContentItems(infodot.contentItems, time, vyc, innerRad, vc, layerid);
+          var items = buildVcContentItems(this.contentItems, time, vyc, innerRad, vc, layerid);
           if (items)
             for (var i = 0; i < items.length; i++)
               addChild(contentItem, items[i], false);
         }
 
         if (contentItem) {
-          infodot.hasContentItems = true;
+          this.hasContentItems = true;
           return {
             zoomLevel: newZl,
             content: contentItem
@@ -2270,19 +2269,19 @@ class CanvasInfodot extends CanvasCircle {
           return null;
 
         // Tooltip is disabled now.
-        infodot.tooltipEnabled = false;
+        this.tooltipEnabled = false;
 
         // stop active fadein animation and hide tooltip
-        if (infodot.tooltipIsShown == true) {
+        if (this.tooltipIsShown == true) {
           //CZ.Common.stopAnimationTooltip();
-          infodot.tooltipIsShown = false;
+          this.tooltipIsShown = false;
         }
 
         var contentItem = null;
 
-        if (infodot.contentItems.length > 0) {
+        if (this.contentItems.length > 0) {
           contentItem = new ContainerElement(vc, layerid, id + "__contentItems", root.x, root.y, 2 * innerRad, 2 * innerRad);
-          var items = buildVcContentItems(infodot.contentItems, time, vyc, innerRad, vc, layerid);
+          var items = buildVcContentItems(this.contentItems, time, vyc, innerRad, vc, layerid);
           if (items)
             for (var i = 0; i < items.length; i++)
               addChild(contentItem, items[i], false);
@@ -2324,34 +2323,10 @@ class CanvasInfodot extends CanvasCircle {
           numberOfLines: 2
         }, titleWidth);
 
-        var imageSize = (titleTop - infodot.y) * 0.75;
-
-        /*copyButton.reactsOnMouse = true;
-
-        copyButton.onmouseclick = function () {
-          CZ.Service.exportExhibit(this.parent.guid).then(function (exportData) {
-            localStorage.setItem('ExportedSchemaVersion', constants.schemaVersion);
-            localStorage.setItem('ExportedExhibit', JSON.stringify(exportData));
-            localStorage.removeItem('ExportedTimeline');
-            CZ.Authoring.showMessageWindow('"' + exportData.title + '" has been copied to your clip-board. You can paste this into a different timeline.');
-          });
-          return true;
-        };
-
-        copyButton.onmouseenter = function () {
-          this.vc.element.css('cursor', 'pointer');
-          this.vc.element.attr('title', 'Copy Exhibit to Clipboard');
-          infodot.settings.strokeStyle = "yellow";
-        };
-
-        copyButton.onmouseleave = function () {
-          this.vc.element.css('cursor', 'default');
-          this.vc.element.attr('title', '');
-          infodot.settings.strokeStyle = constants.infoDotBorderColor;
-        };*/
+        var imageSize = (titleTop - this.y) * 0.75;
 
         if (contentItem) {
-          infodot.hasContentItems = true;
+          this.hasContentItems = true;
           return {
             zoomLevel: newZl,
             content: contentItem
@@ -2359,10 +2334,10 @@ class CanvasInfodot extends CanvasCircle {
         }
       } else {
         // Tooltip is enabled now.
-        infodot.tooltipEnabled = true;
+        this.tooltipEnabled = true;
 
-        infodot.hasContentItems = false;
-        if (infodot.contentItems.length == 0)
+        this.hasContentItems = false;
+        if (this.contentItems.length == 0)
           return null;
 
         var zl = newZl;
@@ -2382,7 +2357,7 @@ class CanvasInfodot extends CanvasCircle {
             content: new ContainerElement(vc, layerid, id + "__empty", time, vyc, 0, 0)
           };
         }
-        var contentItem = infodot.contentItems[0];
+        var contentItem = this.contentItems[0];
         var sz = 1 << zl;
         var thumbnailUri = constants.contentItemThumbnailBaseUri + 'x' + sz + '/' + contentItem.guid + '.png';
         var l = innerRad * 260 / 225;
@@ -2419,7 +2394,7 @@ class CanvasInfodot extends CanvasCircle {
       if (sw < 0.5)
         return;
 
-      var vyc = infodot.y + radv;
+      var vyc = this.y + radv;
       var xlt0 = -_wc / 2 * radv + time;
       var ylt0 = -_hc / 2 * radv + vyc;
       var xlt1 = _wc / 2 * radv + time;
