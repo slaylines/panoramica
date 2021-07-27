@@ -52,7 +52,7 @@ export default class Layout {
 
       if (timeline.Height) timeline.Height /= 100;
       else if (!timeline.AspectRatio && !timeline.Height)
-        timeline.Height = Layout.timelineHeightRate;
+        timeline.Height = this.timelineHeightRate;
     }
 
     function GenerateAspect(timeline) {

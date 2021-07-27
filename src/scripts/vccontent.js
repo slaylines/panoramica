@@ -621,17 +621,15 @@ export class CanvasElement {
 @remarks
 Property "removeWhenInvisible" is optional. If set, the content is completely removed every time when isRendered changes from true to false.
 */
-class CanvasDynamicLOD {
+class CanvasDynamicLOD extends CanvasElement {
   constructor(vc, layerid, id, vx, vy, vw, vh) {
-    this.base = CanvasElement;
-    this.base(vc, layerid, id, vx, vy, vw, vh);
+    super(vc, layerid, id, vx, vy, vw, vh);
+
     this.zoomLevel = 0;
     this.prevContent = null;
     this.newContent = null;
     this.asyncContent = null;
     this.lastRenderTime = 0;
-
-    var self = this;
 
     /* Returns new content elements tree for the given zoom level, if it should change, or null.
     @returns { zoomLevel: number, content: CanvasElement}, or null.
@@ -641,26 +639,26 @@ class CanvasDynamicLOD {
     };
 
     var startTransition = function (newContent) {
-      self.lastRenderTime = new Date();
+      this.lastRenderTime = new Date();
 
-      self.prevContent = self.content;
-      self.content = newContent.content;
-      VCContent.addChild(self, self.content, false);
+      this.prevContent = this.content;
+      this.content = newContent.content;
+      addChild(this, this.content, false);
 
-      if (self.prevContent) {
-        if (!self.prevContent.opacity)
-          self.prevContent.opacity = 1.0;
-        self.content.opacity = 0.0;
+      if (this.prevContent) {
+        if (!this.prevContent.opacity)
+        this.prevContent.opacity = 1.0;
+        this.content.opacity = 0.0;
       }
-      self.zoomLevel = newContent.zoomLevel;
+      this.zoomLevel = newContent.zoomLevel;
     };
 
     var onAsyncContentLoaded = function () {
-      if (self.asyncContent) {
-        startTransition(self.asyncContent);
-        self.asyncContent = null;
+      if (this.asyncContent) {
+        startTransition(this.asyncContent);
+        this.asyncContent = null;
         delete this.onLoad;
-        self.vc.requestInvalidate();
+        this.vc.requestInvalidate();
       }
     };
 
@@ -690,8 +688,8 @@ class CanvasDynamicLOD {
       }
       if (this.prevContent) {
         var renderTime = new Date();
-        var renderTimeDiff = renderTime.getTime() - self.lastRenderTime;
-        self.lastRenderTime = renderTime.getTime();
+        var renderTimeDiff = renderTime.getTime() - this.lastRenderTime;
+        this.lastRenderTime = renderTime.getTime();
 
         // Override the default contentAppearanceAnimationStep,
         // instead of being a constant it now depends on the time,
@@ -834,10 +832,9 @@ export class CanvasRootElement extends CanvasElement {
 @param vw   (number) width of a bounding box in virtual space
 @param vh   (number) height of a bounding box in virtual space
 */
-class ContainerElement {
+class ContainerElement extends CanvasElement {
   constructor(vc, layerid, id, vx, vy, vw, vh) {
-    this.base = CanvasElement;
-    this.base(vc, layerid, id, vx, vy, vw, vh);
+    super(vc, layerid, id, vx, vy, vw, vh);
 
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {};
 
@@ -1184,9 +1181,8 @@ For this, circle radius in pixels is computed from its virtual width.
 */
 class CanvasCircle extends CanvasElement {
   constructor(vc, layerid, id, vxc, vyc, vradius, settings) {
-    //this.base = CanvasElement;
-    //this.base(vc, layerid, id, vxc - vradius, vyc - vradius, 2.0 * vradius, 2.0 * vradius);
     super(vc, layerid, id, vxc - vradius, vyc - vradius, 2.0 * vradius, 2.0 * vradius);
+
     this.settings = settings;
     this.isObservedNow = false; //whether the circle is the largest circle under exploration,
 
@@ -1450,10 +1446,10 @@ class CanvasText extends CanvasElement {
 @remarks
 Text width is adjusted using measureText() on first render call.
 */
-class CanvasMultiLineTextItem {
+class CanvasMultiLineTextItem extends CanvasElement{
   constructor(vc, layerid, id, vx, vy, vh, text, lineWidth, settings) {
-    this.base = CanvasElement;
-    this.base(vc, layerid, id, vx, vy, vh * 10, vh); // todo: measure properly text width
+    super(vc, layerid, id, vx, vy, vh * 10, vh); // todo: measure properly text width
+
     this.settings = settings;
     this.text = text;
 
@@ -1511,43 +1507,42 @@ class CanvasMultiLineTextItem {
 @remarks
 optional property onLoad() is called if defined when the image is loaded and the element is completely initialized.
 */
-class CanvasImage {
+class CanvasImage extends CanvasElement {
   constructor(vc, layerid, id, imageSource, vx, vy, vw, vh, onload) {
-    this.base = CanvasElement;
-    this.base(vc, layerid, id, vx, vy, vw, vh);
+    super(vc, layerid, id, vx, vy, vw, vh);
+
     this.onload = onload;
 
     this.isLoading = true; // I am async
     var img = new Image();
     this.img = img;
     this.img.isLoaded = false;
-    var self = this;
     var onCanvasImageLoad = function (s) {
       img['isLoading'] = false;
       if (!img['isRemoved']) {
         // adjusting aspect ratio
         if (img.naturalHeight) {
-          var ar0 = self.width / self.height;
+          var ar0 = this.width / this.height;
           var ar1 = img.naturalWidth / img.naturalHeight;
           if (ar0 > ar1) {
             // vh ~ img.height, vw is to be adjusted
-            var imgWidth = ar1 * self.height;
-            var offset = (self.width - imgWidth) / 2.0;
-            self.x += offset;
-            self.width = imgWidth;
+            var imgWidth = ar1 * this.height;
+            var offset = (this.width - imgWidth) / 2.0;
+            this.x += offset;
+            this.width = imgWidth;
           } else if (ar0 < ar1) {
             // vw ~ img.width, vh is to be adjusted
-            var imgHeight = self.width / ar1;
-            var offset = (self.height - imgHeight) / 2.0;
-            self.y += offset;
-            self.height = imgHeight;
+            var imgHeight = this.width / ar1;
+            var offset = (this.height - imgHeight) / 2.0;
+            this.y += offset;
+            this.height = imgHeight;
           }
         }
 
         img['isLoaded'] = true;
-        if (self.onLoad)
-          self.onLoad();
-        self.vc.requestInvalidate();
+        if (this.onLoad)
+          this.onLoad();
+        this.vc.requestInvalidate();
       } else {
         delete img['isRemoved'];
         delete img['isLoaded'];
@@ -1598,10 +1593,9 @@ class CanvasImage {
 @param vh        (number)   height of in virtual space
 @param z         (number) z-index
 */
-class CanvasDomItem {
+class CanvasDomItem extends CanvasElement {
   constructor(vc, layerid, id, vx, vy, vw, vh, z) {
-    this.base = CanvasElement;
-    this.base(vc, layerid, id, vx, vy, vw, vh);
+    super(vc, layerid, id, vx, vy, vw, vh);
 
     /* Initializes content of the CanvasDomItem.
     @param content          HTML element to add to virtual canvas
@@ -1713,10 +1707,9 @@ class CanvasDomItem {
 @param z            z-index
 @param settings     Parameters of the appearance
 */
-class CanvasScrollTextItem {
+class CanvasScrollTextItem extends CanvasDomItem {
   constructor(vc, layerid, id, vx, vy, vw, vh, text, z) {
-    this.base = CanvasDomItem;
-    this.base(vc, layerid, id, vx, vy, vw, vh, z);
+    super(vc, layerid, id, vx, vy, vw, vh, z);
 
     //Creating content element
     //Our text will be drawn on div
@@ -1769,11 +1762,11 @@ class CanvasScrollTextItem {
 @param vh           height of in virtual space
 @param z            z-index
 */
-class CanvasPdfItem {
+class CanvasPdfItem extends CanvasDomItem {
   constructor(vc, layerid, id, pdfSrc, vx, vy, vw, vh, z) {
+    super(vc, layerid, id, vx, vy, vw, vh, z);
+
     var pdfViewer = "http://docs.google.com/viewer?url=";
-    this.base = CanvasDomItem;
-    this.base(vc, layerid, id, vx, vy, vw, vh, z);
 
     var elem = document.createElement('iframe');
     elem.setAttribute("id", id);
@@ -1805,10 +1798,9 @@ class CanvasPdfItem {
 @param vh           height of in virtual space
 @param z            z-index
 */
-class CanvasVideoItem {
+class CanvasVideoItem extends CanvasDomItem {
   constructor(vc, layerid, id, videoSrc, vx, vy, vw, vh, z) {
-    this.base = CanvasDomItem;
-    this.base(vc, layerid, id, vx, vy, vw, vh, z);
+    super(vc, layerid, id, vx, vy, vw, vh, z);
 
     var elem = document.createElement('iframe');
     elem.setAttribute("id", id);
@@ -1836,10 +1828,9 @@ class CanvasVideoItem {
 @param z            z-index
 @param settings     Parameters of the appearance
 */
-class CanvasAudioItem {
+class CanvasAudioItem extends CanvasDomItem {
   constructor(vc, layerid, id, audioSrc, vx, vy, vw, vh, z) {
-    this.base = CanvasDomItem;
-    this.base(vc, layerid, id, vx, vy, vw, vh, z);
+    super(vc, layerid, id, vx, vy, vw, vh, z);
 
     var elem = document.createElement('audio');
     elem.setAttribute("id", id);
@@ -1866,28 +1857,25 @@ class CanvasAudioItem {
 class BackgroundImage extends CanvasElement {
   constructor(vc, layerid, id, src, vx, vy, vw, vh) {
     super(vc, layerid, id, vx, vy, vw, vh);
-    var self = this;
-    //self.base = CanvasElement;
-    //self.base(vc, layerid, id, vx, vy, vw, vh);
 
     var onload = function () {
-      self.vc.requestInvalidate();
+      this.vc.requestInvalidate();
     };
 
-    self.img = new Image();
-    self.img.addEventListener("load", onload, false);
-    self.img.src = src;
+    this.img = new Image();
+    this.img.addEventListener("load", onload, false);
+    this.img.src = src;
 
-    self.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
-      if (!self.img.complete)
+    this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
+      if (!this.img.complete)
         return;
 
-      var ptl = viewport2d.pointVirtualToScreen(self.x, self.y),
-        pbr = viewport2d.pointVirtualToScreen(self.x + self.width, self.y + self.height),
+      var ptl = viewport2d.pointVirtualToScreen(this.x, this.y),
+        pbr = viewport2d.pointVirtualToScreen(this.x + this.width, this.y + this.height),
         tw = pbr.x - ptl.x,
         th = pbr.y - ptl.y,
-        iw = self.img.width,
-        ih = self.img.height,
+        iw = this.img.width,
+        ih = this.img.height,
         vpw = viewport2d.width,
         vph = viewport2d.height,
         tiwr = tw / iw,
@@ -1915,16 +1903,16 @@ class BackgroundImage extends CanvasElement {
         vh = Math.min(vph, pbr.y) - vy;
       }
 
-      if (self.img.naturalWidth && self.img.naturalHeight) {
-        ctx.drawImage(self.img, sx, sy, sw, sh, vx, vy, vw, vh);
+      if (this.img.naturalWidth && this.img.naturalHeight) {
+        ctx.drawImage(this.img, sx, sy, sw, sh, vx, vy, vw, vh);
       }
     };
 
-    self.onRemove = function () {
-      self.img.removeEventListener("load", onload, false);
+    this.onRemove = function () {
+      this.img.removeEventListener("load", onload, false);
     };
 
-    self.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
+    this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
 
@@ -1948,9 +1936,8 @@ class BackgroundImage extends CanvasElement {
 */
 class ContentItem extends CanvasDynamicLOD {
   constructor(vc, layerid, id, vx, vy, vw, vh, contentItem){
-    super(vc, layerid, id, vx, vy, vw, vh)
-    //this.base = CanvasDynamicLOD;
-    //this.base(vc, layerid, id, vx, vy, vw, vh);
+    super(vc, layerid, id, vx, vy, vw, vh);
+    
     this.guid = contentItem.id;
     this.type = 'contentItem';
     this.contentItem = contentItem;
@@ -2127,7 +2114,7 @@ class CanvasInfodot extends CanvasCircle {
       fillStyle: constants.infoDotFillColor,
       isLineWidthVirtual: true,
       showCirca: infodotDescription.isCirca
-    })
+    });
 
     this.guid = infodotDescription.guid;
     this.type = 'infodot';
@@ -2241,7 +2228,7 @@ class CanvasInfodot extends CanvasCircle {
     var infodot = this;
     var root = new CanvasDynamicLOD(vc, layerid, id + "_dlod", time - innerRad, vyc - innerRad, 2 * innerRad, 2 * innerRad);
     root.removeWhenInvisible = true;
-    VCContent.addChild(this, root, false);
+    addChild(this, root, false);
 
     root.firstLoad = true;
     root.changeZoomLevel = function (curZl, newZl) {
