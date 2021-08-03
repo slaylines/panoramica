@@ -28,6 +28,34 @@ const addChild = (parent, element, suppresCheck) => {
   return element;
 };
 
+/* Looks up an element with given id in the children of this element and removes it with its children.
+@param id   (any) id of an element
+@returns    true, if element found and removed; otherwise, false.
+@remarks    The method must be called within the BeginEdit/EndEdit of the root item.
+If a child has onRemove() method, it is called right after removing of the child and clearing of all its children (recursively).
+*/
+const removeChild = (parent, id) => {
+  var n = parent.children.length;
+  for (var i = 0; i < n; i++) {
+      var child = parent.children[i];
+      if (child.id == id) {
+          // remove element from hash map of animating elements in dynamic layout animation
+          if (typeof CZ.Layout.animatingElements[child.id] !== 'undefined') {
+              delete CZ.Layout.animatingElements[child.id];
+              CZ.Layout.animatingElements.length--;
+          }
+
+          parent.children.splice(i, 1);
+          clear(child);
+          if (child.onRemove)
+              child.onRemove();
+          child.parent = null;
+          return true;
+      }
+  }
+  return false;
+};
+
 const turnIsRenderedOff = (element) => {
   element.isRendered = false;
   
@@ -614,48 +642,7 @@ export class CanvasElement {
     @param opacity          (float in [0,1]) 0 means transparent, 1 means opaque.
     @remarks The method is implemented for each particular VirtualCanvas element.
     */
-    //this.render = function (ctx, visibleBox_v, viewport2d, size_p, opacity) {};
-    /* Renders a CanvasElement recursively
-    @param element          (CanvasElement) element to render
-    @param contexts         (map<layerid,context2d>) Contexts for layers' canvases.
-    @param visibleBox_v     ({Left,Right,Top,Bottom}) describes visible region in the virtual space
-    @param viewport2d       (Viewport2d) current viewport
-    @param opacity          (float in [0,1]) 0 means transparent, 1 means opaque.
-    */
-    this.render = function (element, contexts, visibleBox_v, viewport2d, opacity) {
-      if (!element.isVisible(visibleBox_v)) {
-          if (element.isRendered)
-              turnIsRenderedOff(element);
-          return;
-      }
-
-      var sz = viewport2d.vectorVirtualToScreen(element.width, element.height);
-      if (sz.y <= CZ.Settings.renderThreshold || (element.width != 0 && sz.x <= CZ.Settings.renderThreshold)) {
-          if (element.isRendered)
-              turnIsRenderedOff(element);
-          return;
-      }
-
-      var ctx = contexts[element.layerid];
-      if (element.opacity != null) {
-          opacity *= element.opacity;
-      }
-
-      // Rendering an element
-      if (element.isRendered == undefined || !element.isRendered) {
-          element.isRendered = true;
-          if (element.onIsRenderedChanged)
-              element.onIsRenderedChanged();
-      }
-
-      element.render(ctx, visibleBox_v, viewport2d, sz, opacity);
-
-      var children = element.children;
-      var n = children.length;
-      for (var i = 0; i < n; i++) {
-          this.render(children[i], contexts, visibleBox_v, viewport2d, opacity);
-      }
-    };
+    this.render = function (ctx, visibleBox_v, viewport2d, size_p, opacity) { };
   }
 }
 
@@ -666,7 +653,6 @@ Property "removeWhenInvisible" is optional. If set, the content is completely re
 class CanvasDynamicLOD extends CanvasElement {
   constructor(vc, layerid, id, vx, vy, vw, vh) {
     super(vc, layerid, id, vx, vy, vw, vh);
-
     this.zoomLevel = 0;
     this.prevContent = null;
     this.newContent = null;
@@ -690,21 +676,21 @@ class CanvasDynamicLOD extends CanvasElement {
       addChild(self, self.content, false);
 
       if (self.prevContent) {
-          if (!self.prevContent.opacity)
-              self.prevContent.opacity = 1.0;
-          self.content.opacity = 0.0;
+        if (!self.prevContent.opacity)
+          self.prevContent.opacity = 1.0;
+        self.content.opacity = 0.0;
       }
       self.zoomLevel = newContent.zoomLevel;
-  };
+    };
 
-  var onAsyncContentLoaded = function () {
+    var onAsyncContentLoaded = function () {
       if (self.asyncContent) {
-          startTransition(self.asyncContent);
-          self.asyncContent = null;
-          delete this.onLoad;
-          self.vc.requestInvalidate();
+        startTransition(self.asyncContent);
+        self.asyncContent = null;
+        delete this.onLoad;
+        self.vc.requestInvalidate();
       }
-  };
+    };
 
     /* Renders a rectangle.
     @param ctx              (context2d) Canvas context2d to render on.
@@ -746,7 +732,7 @@ class CanvasDynamicLOD extends CanvasElement {
         if (lopacity != this.prevContent.opacity)
           doInvalidate = true;
         if (lopacity == 0) {
-          VCContent.removeChild(this, this.prevContent.id);
+          removeChild(this, this.prevContent.id);
           this.prevContent = null;
         } else {
           this.prevContent.opacity = lopacity;
@@ -771,16 +757,16 @@ class CanvasDynamicLOD extends CanvasElement {
           this.asyncContent = null;
         }
         if (this.prevContent) {
-          VCContent.removeChild(this, this.prevContent.id);
+          removeChild(this, this.prevContent.id);
           this.prevContent = null;
         }
         if (this.newContent) {
-          VCContent.removeChild(this, this.newContent.id);
+          removeChild(this, this.newContent.id);
           this.newContent.content.onLoad = null;
           this.newContent = null;
         }
         if (this.content) {
-          VCContent.removeChild(this, this.content.id);
+          removeChild(this, this.content.id);
           this.content = null;
         }
 
@@ -790,7 +776,6 @@ class CanvasDynamicLOD extends CanvasElement {
         this.zoomLevel = 0;
       }
     };
-    this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
 
@@ -849,7 +834,7 @@ export class CanvasRootElement extends CanvasElement {
       @param viewport2d       (Viewport2d) current viewport
     */
     this.render = function (contexts, visibleBox_v, viewport2d) {
-      this.vc.breadCrumbs = [];
+      //this.vc.breadCrumbs = [];
 
       if (!this.isVisible(visibleBox_v)) return;
 
@@ -857,13 +842,13 @@ export class CanvasRootElement extends CanvasElement {
         render(child, contexts, visibleBox_v, viewport2d, 1.0);
       });
 
-      if (this.vc.breadCrumbs.length && (!this.vc.recentBreadCrumb || this.vc.breadCrumbs[vc.breadCrumbs.length - 1].vcElement.id !== this.vc.recentBreadCrumb.vcElement.id)) {
+      /*if (this.vc.breadCrumbs.length && (!this.vc.recentBreadCrumb || this.vc.breadCrumbs[vc.breadCrumbs.length - 1].vcElement.id !== this.vc.recentBreadCrumb.vcElement.id)) {
         this.vc.recentBreadCrumb = this.vc.breadCrumbs[vc.breadCrumbs.length - 1];
         this.vc.breadCrumbsChanged();
       } else if (!this.vc.breadCrumbs.length && this.vc.recentBreadCrumb) {
         this.vc.recentBreadCrumb = undefined;
         this.vc.breadCrumbsChanged();
-      }
+      }*/
     };
   }
 }
@@ -998,6 +983,8 @@ class CanvasRectangle extends CanvasElement {
     this.isVisibleOnScreen = function (scale) {
       return this.width / scale >= constants.minTimelineWidth;
     };
+
+    this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
 
@@ -1252,7 +1239,6 @@ class CanvasCircle extends CanvasElement {
         ctx.setLineDash([6, 3]);
       }
 
-      console.log(ctx);
       ctx.globalAlpha = opacity;
       ctx.beginPath();
       ctx.arc(p.x, p.y, radp, 0, Math.PI * 2, true);
@@ -1287,7 +1273,7 @@ class CanvasCircle extends CanvasElement {
       return len2 <= vradius * vradius;
     };
 
-    //this.prototype = new CanvasElement(vc, layerid, id, vxc - vradius / 2, vyc - vradius / 2, vradius, vradius);
+    this.prototype = new CanvasElement(vc, layerid, id, vxc - vradius / 2, vyc - vradius / 2, vradius, vradius);
   }
 }
 
@@ -2252,10 +2238,10 @@ class CanvasInfodot extends CanvasCircle {
       this.vc.requestInvalidate();
 
       // stop active fadein animation and hide tooltip
-      if (this.tooltipIsShown == true)
+      //if (this.tooltipIsShown == true)
         //CZ.Common.stopAnimationTooltip();
 
-      this.tooltipIsShown = false;
+      //this.tooltipIsShown = false;
       //CZ.Common.tooltipMode = "default";
 
       this.vc.currentlyHoveredInfodot = undefined;
@@ -2433,7 +2419,6 @@ class CanvasInfodot extends CanvasCircle {
     @remarks The method is implemented for each particular VirtualCanvas element.
     */
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
-      //super.render.call(this, ctx, visibleBox, viewport2d, size_p, opacity);
       this.prototype.render.call(this, ctx, visibleBox, viewport2d, size_p, opacity); // rendering the circle
 
       var sw = viewport2d.widthVirtualToScreen(strokeWidth);
