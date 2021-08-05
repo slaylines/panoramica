@@ -1,0 +1,75 @@
+export const data = {
+  id: '00000000-0000-0000-0000-000000000000',
+  start: -13800000000,
+  end: 100000000,
+  title: 'Data',
+  regime: 'Cosmos',
+  exhibits: [
+    {
+      isCirca: false,
+      contentItems: [],
+      id: '9160ae5d-b13c-4865-8b37-4f2638ca5bc7',
+      time: -13798000000,
+      title: 'The Big Bang',
+    }, {
+      isCirca: false,
+      contentItems: [],
+      id: 'c726a9c3-63ec-455c-ac5d-0f84643f09a6',
+      time: -13200000000,
+      title: 'The Birth of the Milky Way Galaxy',
+    }, {
+      isCirca: false,
+      contentItems: [],
+      id: '59c90472-0e89-4319-b187-18a5cf315307',
+      time: -8000000000,
+      title: 'NGC 6791',
+    }, {
+      isCirca: false,
+      contentItems: [],
+      id: '4fb02c60-85a7-4e60-97de-2bfb8638eb6a',
+      time: -1000000000,
+      title: 'Vesta underwent splintering collision',
+    }, {
+      isCirca: false,
+      contentItems: [],
+      id: 'e0af4f89-8190-426b-b8f9-3941c06f3d2c',
+      time: -3400000000,
+      title: 'Bullet Cluster Formed',
+    }, {
+      isCirca: false,
+      contentItems: [],
+      id: '911323b5-8d36-43a9-8190-a7359183c778',
+      time: -5000000000,
+      title: 'Picturing the Universe',
+    }, {
+      isCirca: false,
+      contentItems: [],
+      id: '85aa5683-f1a5-4d01-9699-ea00ce2ef73d',
+      time: -9600000000,
+      title: 'Galaxies',
+    }, {
+      isCirca: false,
+      contentItems: [],
+      id: '41705533-76c9-4b8f-8f66-ff0c56a527ca',
+      time: -4560000000,
+      title: 'The Solar System',
+    },
+  ],
+  timelines: [
+    {
+      id: '48fbb8a8-7c5d-49c3-83e1-98939ae2ae67',
+      start: -4570000000,
+      end: 9999,
+      title: 'Earth & Solar System',
+      regime: 'Earth',
+      exhibits: [{
+        isCirca: false,
+        contentItems: [],
+        id: '48a39b56-61f9-4467-8100-91daa206a470',
+        time: -4560000000,
+        title: 'Origins of The Earth and The Solar System',
+      }],
+      timelines: [],
+    },
+  ],
+};

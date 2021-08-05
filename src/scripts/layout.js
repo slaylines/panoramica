@@ -50,13 +50,13 @@ export default class Layout {
 
       GenerateAspect(timeline);
 
-      if (timeline.Height) timeline.Height /= 100;
-      else if (!timeline.AspectRatio && !timeline.Height)
-        timeline.Height = this.timelineHeightRate;
+      if (timeline.initHeight) timeline.initHeight /= 100;
+      else if (!timeline.AspectRatio && !timeline.initHeight)
+        timeline.initHeight = this.timelineHeightRate;
     }
 
     function GenerateAspect(timeline) {
-      timeline.AspectRatio = timeline.aspectRatio || 2;
+      timeline.AspectRatio = timeline.aspectRatio || 10;
     }
 
     function LayoutTimeline(timeline, parentWidth, measureContext) {
@@ -64,53 +64,56 @@ export default class Layout {
       var timelineWidth = timeline.right - timeline.left;
       timeline.width = timelineWidth;
 
-      //Set content margin
+      // Set content margin
       timeline.heightEps = parentWidth * constants.timelineContentMargin;
 
-      //If child timeline has fixed aspect ratio, calculate its height according to it
+      // If child timeline has fixed aspect ratio, calculate its height according to it
       if (timeline.AspectRatio && !timeline.height) {
         timeline.height = timelineWidth / timeline.AspectRatio;
       }
 
       if (timeline.timelines instanceof Array) {
         timeline.timelines.forEach(function (tl) {
-          //If child timeline has fixed aspect ratio, calculate its height according to it
+          // If child timeline has fixed aspect ratio, calculate its height according to it
           if (tl.AspectRatio) {
             tl.height = (tl.right - tl.left) / tl.AspectRatio;
-          } else if (timeline.height && tl.Height) {
-            //If Child timeline has height in percentage of parent, calculate it before layout pass
+          } else if (timeline.height && tl.initHeight) {
+            // If Child timeline has height in percentage of parent, calculate it before layout pass
             tl.height = Math.min(
-              timeline.height * tl.Height,
+              timeline.height * tl.initHeight,
               (tl.right - tl.left) * constants.timelineMinAspect
             );
-            if (tl.offsetY !== null && tl.Height) {
-              tl.height = timeline.height * tl.Height;
+            if (tl.offsetY && tl.initHeight) {
+              tl.height = timeline.height * tl.initHeight;
             }
           }
 
-          //Calculate layout for each child timeline
+          // Calculate layout for each child timeline
           LayoutTimeline(tl, timelineWidth, measureContext);
         });
       }
 
       if (!timeline.height) {
-        //Searching for timeline with the biggest ratio between its height percentage and real height
-        var scaleCoef = undefined;
+        // Searching for timeline with the biggest ratio between its height percentage and real height
+        let scaleCoef = undefined;
+
         if (timeline.timelines instanceof Array) {
-          timeline.timelines.forEach(function (tl) {
-            if (tl.Height && !tl.AspectRatio) {
-              var localScale = tl.height / tl.Height;
+          timeline.timelines.forEach(tl => {
+            if (tl.initHeight && !tl.AspectRatio) {
+              const localScale = tl.height / tl.initHeight;
+
               if (!scaleCoef || scaleCoef < localScale) scaleCoef = localScale;
             }
           });
         }
 
-        //Scaling timelines to make their percentages corresponding to each other
+        // Scaling timelines to make their percentages corresponding to each other
         if (scaleCoef) {
           if (timeline.timelines instanceof Array) {
-            timeline.timelines.forEach(function (tl) {
-              if (tl.Height && !tl.AspectRatio) {
-                var scaleParam = (scaleCoef * tl.Height) / tl.height;
+            timeline.timelines.forEach(tl => {
+              if (tl.initHeight && !tl.AspectRatio) {
+                const scaleParam = (scaleCoef * tl.initHeight) / tl.height;
+
                 if (scaleParam > 1) {
                   tl.realY *= scaleParam;
                   Scale(tl, scaleParam, measureContext);
@@ -119,22 +122,21 @@ export default class Layout {
             });
           }
 
-          //Set final timelineHeight
+          // Set final timelineHeight
           timeline.height = scaleCoef;
         }
       }
 
-      //Now positioning child content and title
-      var exhibitSize = CalcInfodotSize(timeline);
+      // Now positioning child content and title
+      let exhibitSize = CalcInfodotSize(timeline);
 
       timeline.realY = 0;
 
-      //Layout only timelines to check that they fit into parent timeline
-      var tlRes = LayoutChildTimelinesOnly(timeline, null, headerPercent);
+      // Layout only timelines to check that they fit into parent timeline
+      const tlRes = LayoutChildTimelinesOnly(timeline, null, headerPercent);
+      const hFlag = timeline.initHeight & timeline.offsetY ? true : false;
 
-      var hFlag = timeline.Height & timeline.offsetY ? true : false;
-      //First layout iteration of full content (taking Sequence in account)
-      var res = LayoutContent(
+      let res = LayoutContent(
         timeline,
         exhibitSize,
         hFlag,
@@ -144,57 +146,39 @@ export default class Layout {
       );
 
       if (timeline.height) {
-        if (timeline.exhibits instanceof Array) {
-          if (
-            timeline.exhibits.length > 0 &&
-            tlRes.max - tlRes.min < timeline.height
-          ) {
-            while (
-              res.max - res.min > timeline.height &&
-              exhibitSize > timelineWidth / 20.0
-            ) {
-              exhibitSize /= 1.5;
-              res = LayoutContent(
-                timeline,
-                exhibitSize,
-                hFlag,
-                timeline.height,
-                headerPercent
-              );
-            }
+        if (timeline.exhibits.length > 0 && tlRes.max - tlRes.min < timeline.height) {
+          while (res.max - res.min > timeline.height && exhibitSize >= timelineWidth / 20.0) {
+            exhibitSize /= 1.5;
+            res = LayoutContent(
+              timeline,
+              exhibitSize,
+              hFlag,
+              timeline.height,
+              headerPercent
+            );
           }
         }
 
         if (res.max - res.min > timeline.height) {
-          //console.log("Warning: Child timelines and exhibits doesn't fit into parent. Timeline name: " + timeline.title);
           timeline.height = res.max - res.min;
         }
       } else {
-        var min = res.min;
-        var max = res.max;
+        const minAspect = 1.0 / constants.timelineMinAspect;
+        const minHeight = timelineWidth / minAspect;
 
-        var minAspect = 1.0 / constants.timelineMinAspect;
-        var minHeight = timelineWidth / minAspect;
-
-        //Measure title
-        var contentHeight = Math.max(minHeight, max - min);
-        timeline.height = contentHeight;
+        timeline.height = Math.max(minHeight, res.max - res.min);
       }
 
-      if (timeline.Height & timeline.offsetY)
-        timeline.realHeight = timeline.height;
-      else timeline.realHeight = timeline.height + 2 * timeline.heightEps;
+      timeline.realHeight = timeline.initHeight && timeline.offsetY
+        ? timeline.height
+        : timeline.height + 2 * timeline.heightEps;
 
       if (timeline.exhibits instanceof Array) {
-        timeline.exhibits.forEach(function (infodot) {
-          infodot.realY -= res.min;
-        });
+        timeline.exhibits.forEach(infodot => infodot.realY -= res.min);
       }
 
       if (timeline.timelines instanceof Array) {
-        timeline.timelines.forEach(function (tl) {
-          tl.realY -= res.min;
-        });
+        timeline.timelines.forEach(tl => tl.realY -= res.min);
       }
     }
 
@@ -305,7 +289,7 @@ export default class Layout {
 
         if (arrangedArray.length) {
           var tmax;
-          if (arrangedArray[0].Height == undefined)
+          if (arrangedArray[0].initHeight == undefined)
             tmax =
               (arrangedArray[0].realY / arrangedArray[0].offsetY) * 100 +
               arrangedArray[0].realHeight / 2;
@@ -335,20 +319,20 @@ export default class Layout {
           });
 
           //First try
-          if (manualArray[arrangedManually].Height === undefined)
+          if (manualArray[arrangedManually].initHeight === undefined)
             max -= infodotSize;
           manualArray[arrangedManually].realY =
             (max * manualArray[arrangedManually].offsetY) / 100;
           if (
             manualArray[arrangedManually].offsetY !== null &&
-            manualArray[arrangedManually].Height
+            manualArray[arrangedManually].initHeight
           ) {
             manualArray[arrangedManually].height =
-              max * manualArray[arrangedManually].Height;
+              max * manualArray[arrangedManually].initHeight;
             manualArray[arrangedManually].realHeight =
-              max * manualArray[arrangedManually].Height;
+              max * manualArray[arrangedManually].initHeight;
           }
-          if (manualArray[arrangedManually].Height === undefined)
+          if (manualArray[arrangedManually].initHeight === undefined)
             max += infodotSize;
 
           //realY
@@ -372,7 +356,7 @@ export default class Layout {
 
           //Adding the area size multiplayed by worse case coefficient
           if (arranged === false) {
-            if (manualArray[arrangedManually].Height == undefined)
+            if (manualArray[arrangedManually].initHeight == undefined)
               max +=
                 (locMax - locMin + infodotSize) *
                 (1.001 /
@@ -389,13 +373,13 @@ export default class Layout {
                     manualArray[arrangedManually].offsetY,
                     100.0 -
                       manualArray[arrangedManually].offsetY -
-                      manualArray[arrangedManually].Height * 100
+                      manualArray[arrangedManually].initHeight * 100
                   ) /
                     100));
             arrangedArray.forEach(function (ael) {
-              if (ael.offsetY !== null && ael.Height) {
+              if (ael.offsetY !== null && ael.initHeight) {
                 ael.realY = (max * ael.offsetY) / 100;
-                ael.height = max * ael.Height;
+                ael.height = max * ael.initHeight;
                 ael.realHeight = ael.height;
               } else {
                 ael.realY = (max * ael.offsetY) / 100 - infodotSize / 2;
@@ -405,14 +389,14 @@ export default class Layout {
 
           if (
             manualArray[arrangedManually].offsetY !== null &&
-            manualArray[arrangedManually].Height
+            manualArray[arrangedManually].initHeight
           ) {
             manualArray[arrangedManually].realY =
               (max * manualArray[arrangedManually].offsetY) / 100;
             manualArray[arrangedManually].height =
-              max * manualArray[arrangedManually].Height;
+              max * manualArray[arrangedManually].initHeight;
             manualArray[arrangedManually].realHeight =
-              max * manualArray[arrangedManually].Height;
+              max * manualArray[arrangedManually].initHeight;
           } else {
             manualArray[arrangedManually].realY =
               (max * manualArray[arrangedManually].offsetY) / 100 -
@@ -434,7 +418,7 @@ export default class Layout {
         max = Number.MIN_VALUE;
         for (var i = 0; i < arrangedArray.length; i++) {
           var tmax;
-          if (arrangedArray[i].Height === undefined) {
+          if (!arrangedArray[i].initHeight) {
             if (arrangedArray[i].offsetY === 0) tmax = 0;
             else
               tmax =
@@ -608,7 +592,7 @@ export default class Layout {
     }
 
     function Arrange(timeline, measureContext) {
-      if (timeline.offsetY !== null && timeline.Height)
+      if (timeline.offsetY !== null && timeline.initHeight)
         timeline.y = timeline.realY;
       else timeline.y = timeline.realY + timeline.heightEps;
 
@@ -620,7 +604,7 @@ export default class Layout {
 
       if (timeline.timelines instanceof Array) {
         timeline.timelines.forEach(function (tl) {
-          if (tl.offsetY !== null && tl.Height) {
+          if (tl.offsetY !== null && tl.initHeight) {
             var exhibitSize = CalcInfodotSize(timeline);
             var headerPercent =
               constants.timelineHeaderSize +
@@ -696,7 +680,6 @@ export default class Layout {
         bboxHeight: height + 2 * margin,
       };
     }
-    Layout.GenerateTitleObject = GenerateTitleObject;
 
     function Convert(parent, timeline) {
       //Creating timeline
@@ -718,13 +701,13 @@ export default class Layout {
           strokeStyle: tlColor,
           regime: timeline.regime,
           endDate: timeline.endDate,
-          FromIsCirca: timeline.FromIsCirca || false,
-          ToIsCirca: timeline.ToIsCirca || false,
+          fromIsCirca: timeline.fromIsCirca || false,
+          toIsCirca: timeline.toIsCirca || false,
           opacity: 0,
           backgroundUrl: timeline.backgroundUrl,
           aspectRatio: timeline.aspectRatio,
           offsetY: timeline.offsetY,
-          Height: timeline.Height,
+          initHeight: timeline.initHeight,
         }
       );
 
@@ -753,7 +736,7 @@ export default class Layout {
               title: childInfodot.title,
               offsetY: childInfodot.offsetY,
               date: childInfodot.time,
-              isCirca: childInfodot.IsCirca,
+              isCirca: childInfodot.isCirca,
               opacity: 1,
             }
           );
@@ -784,30 +767,6 @@ export default class Layout {
         return null;
       }
     }
-
-    Layout.FindChildTimeline = function (timeline, id, recursive) {
-      var result = undefined;
-
-      if (timeline && timeline.timelines instanceof Array) {
-        var n = timeline.timelines.length;
-        for (var i = 0; i < n; i++) {
-          var childTimeline = timeline.timelines[i];
-          if (childTimeline.id == id) {
-            // timeline was found
-            result = childTimeline;
-            break;
-          } else {
-            // if recursive mode is on, then search timeline through children of current child timeline
-            if (recursive == true) {
-              result = Layout.FindChildTimeline(childTimeline, id, recursive);
-              if (result != undefined) break;
-            }
-          }
-        }
-      }
-
-      return result;
-    };
 
     function GetVisibleFromTimeline(timeline, vcph) {
       if (timeline) {
@@ -1000,9 +959,9 @@ export default class Layout {
       };
 
       // add elem to hash map
-      if (typeof Layout.animatingElements[elem.id] === 'undefined') {
-        Layout.animatingElements[elem.id] = elem;
-        Layout.animatingElements.length++;
+      if (typeof this.animatingElements[elem.id] === 'undefined') {
+        this.animatingElements[elem.id] = elem;
+        this.animatingElements.length++;
       }
 
       // calculates new animation frame of element
@@ -1033,8 +992,8 @@ export default class Layout {
           elem.animation.isAnimating = false;
           elem.animation.args = [];
 
-          delete Layout.animatingElements[elem.id];
-          Layout.animatingElements.length--;
+          delete this.animatingElements[elem.id];
+          this.animatingElements.length--;
 
           if (elem.fadeIn == false) elem.fadeIn = true;
 

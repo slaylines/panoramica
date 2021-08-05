@@ -7,9 +7,6 @@ import * as dates from './dates';
 import * as utils from './utils';
 import Layout from './layout';
 
-//import Common from './common';
-//import Service from './service';
-
 /*
   Adds a CanvasElement instance to the children array of this element.
   @param  element     (CanvasElement) new child of this element
@@ -118,8 +115,7 @@ const render = (element, contexts, visibleBox_v, viewport2d, opacity) => {
   const sz = viewport2d.vectorVirtualToScreen(element.width, element.height);
 
   if (sz.y <= constants.renderThreshold || (element.width !== 0 && sz.x <= constants.renderThreshold)) {
-    if (element.isRendered)
-      turnIsRenderedOff(element);
+    if (element.isRendered) turnIsRenderedOff(element);
     return;
   }
 
@@ -1013,16 +1009,16 @@ class CanvasTimeline extends CanvasRectangle {
 
     this.endDate = timelineinfo.endDate;
 
-    this.FromIsCirca = timelineinfo.FromIsCirca || false;
-    this.ToIsCirca = timelineinfo.ToIsCirca || false;
+    this.fromIsCirca = timelineinfo.fromIsCirca || false;
+    this.toIsCirca = timelineinfo.toIsCirca || false;
     this.backgroundUrl = timelineinfo.backgroundUrl || '';
     this.aspectRatio = timelineinfo.aspectRatio || null;
 
     this.offsetY = timelineinfo.offsetY;
-    this.Height = timelineinfo.Height;
+    this.initHeight = timelineinfo.initHeight;
 
-    this.settings.showFromCirca = this.FromIsCirca;
-    this.settings.showToCirca = this.ToIsCirca;
+    this.settings.showFromCirca = this.fromIsCirca;
+    this.settings.showToCirca = this.toIsCirca;
     this.settings.showInfinite = (timelineinfo.endDate == 9999);
 
     var width = timelineinfo.timeEnd - timelineinfo.timeStart;
@@ -1146,11 +1142,6 @@ class CanvasTimeline extends CanvasRectangle {
       if (this.settings.hoverAnimationDelta) {
         this.settings.gradientOpacity = Math.min(1, Math.max(0, this.settings.gradientOpacity + this.settings.hoverAnimationDelta));
       }
-
-      // Rendering background.
-      /*if (typeof self.backgroundImg !== "undefined") {
-        this.backgroundImg.render(ctx, visibleBox, viewport2d, size_p, 1.0);
-      }*/
 
       this.base_render(ctx, visibleBox, viewport2d, size_p, opacity);
 

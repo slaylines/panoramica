@@ -75,7 +75,6 @@ export const contentItemFontHeight = 140.0 / 540;
 export const contentItemHeaderFontName = 'Arial';
 export const contentItemHeaderFontColor = 'white';
 
-// See also contentItemDescriptionText class in the Styles/cz.css which decorates the description block in a content item
 export const contentItemBoundingBoxBorderWidth = 13.0 / 520;
 export const contentItemBoundingBoxFillColor = 'rgb(36,36,36)';
 export const contentItemBoundingBoxBorderColor = undefined;
