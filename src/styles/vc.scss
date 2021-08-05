@@ -17,8 +17,28 @@
 
 .vc-layer-div {
   position: absolute;
+  top: 0;
+  left: 0;
   z-index: 0;
   overflow: hidden;
+}
+
+.vc-tooltip {
+  display: inline-block;
+  z-index: 3000;
+  position: absolute;
+  padding: 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  background: rgba(#fff, 0.9);
+  color: #333;
+  opacity: 0;
+  transition: all 200ms ease-in;
+
+  &.visible {
+    opacity: 1;
+    transition: all 200ms ease-out;
+  }
 }
 
 .unselectable {

@@ -20,32 +20,30 @@ html, body {
 main {
   position: relative;
   width: 100%;
-  height: calc(100% - 7em);
+  height: calc(100% - 2.5em);
   background: #333;
 }
 
-header,
-footer {
+header {
   display: flex;
   align-items: center;
   padding: 0 1em;
-}
-
-header {
-  height: 4em;
+  height: 2.5em;
 
   h1 {
     margin: 0;
+    font-size: 1.4em;
   }
-}
-
-footer {
-  height: 3em;
 
   .github-link {
     display: flex;
     align-items: center;
     font-size: 0.85em;
+    margin-left: auto;
+
+    a {
+      border-bottom: 0;
+    }
 
     img {
       width: 2.2em;

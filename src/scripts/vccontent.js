@@ -1055,16 +1055,6 @@ class CanvasTimeline extends CanvasRectangle {
     this.tooltipEnabled = true;
     this.tooltipIsShown = false;
 
-    // Initialize background image for the timeline.
-    /*
-    if (self.backgroundUrl) {
-      self.backgroundUrl = CZ.Service.MakeSecureUri(self.backgroundUrl);
-      self.backgroundImg = new BackgroundImage(self.vc, layerid, id + "__background__", self.backgroundUrl, self.x, self.y, self.width, self.height);
-      self.settings.gradientOpacity = 0;
-      self.settings.fillStyle = undefined;
-    }
-    */
-
     this.onmouseclick = event => {
       return zoomToElementHandler(this, event, 1.0);
     };
@@ -1077,7 +1067,7 @@ class CanvasTimeline extends CanvasRectangle {
         try {
           this.vc.currentlyHoveredInfodot.id;
         } catch (ex) {
-          // CZ.Common.stopAnimationTooltip();
+          this.vc.hideTooltip();
           this.vc.currentlyHoveredTimeline.tooltipIsShown = false;
         }
       }
@@ -1101,62 +1091,37 @@ class CanvasTimeline extends CanvasRectangle {
       //if timeline title is small, show tooltip
       this.tooltipEnabled = this.titleObject.screenFontSize <= constants.timelineTooltipMaxHeaderSize;
 
-      /*
-      if (CZ.Common.tooltipMode != "infodot") {
-        CZ.Common.tooltipMode = "timeline";
+      if (this.vc.tooltipMode !== 'infodot') {
+        this.vc.tooltipMode = 'timeline';
 
-        if (this.tooltipEnabled == false) {
-          CZ.Common.stopAnimationTooltip();
+        if (!this.tooltipEnabled) {
+          this.vc.hideTooltip();
           this.tooltipIsShown = false;
           return;
         }
 
         // show tooltip if it is enabled and is not shown yet
-        if (this.tooltipIsShown == false) {
-          switch (this.regime) {
-            case "Cosmos":
-              $(".bubbleInfo").attr("id", "cosmosRegimeBox");
-              break;
+        if (!this.tooltipIsShown) {
+          const tooltip = $('.vc-tooltip');
 
-            case "Earth":
-              $(".bubbleInfo").attr("id", "earthRegimeBox");
-              break;
+          tooltip.find('span').text(this.title);
+          tooltip.addClass('visible');
 
-            case "Life":
-              $(".bubbleInfo").attr("id", "lifeRegimeBox");
-              break;
-
-            case "Pre-history":
-              $(".bubbleInfo").attr("id", "prehistoryRegimeBox");
-              break;
-
-            case "Humanity":
-              $(".bubbleInfo").attr("id", "humanityRegimeBox");
-              break;
-          }
-
-          $(".bubbleInfo span").text(this.title);
-          this.panelWidth = $('.bubbleInfo').outerWidth(); // complete width of tooltip panel
-          this.panelHeight = $('.bubbleInfo').outerHeight(); // complete height of tooltip panel
-
+          this.panelWidth = tooltip.outerWidth(); // complete width of tooltip panel
+          this.panelHeight = tooltip.outerHeight(); // complete height of tooltip panel
           this.tooltipIsShown = true;
-          CZ.Common.animationTooltipRunning = $('.bubbleInfo').fadeIn();
         }
       }
-      */
     };
     this.onmouseunhover = function (pv, e) {
       if (this.vc.currentlyHoveredTimeline != null && this.vc.currentlyHoveredTimeline.id == id) {
         this.vc.currentlyHoveredTimeline = null;
 
-        /*
-        if ((this.tooltipIsShown == true) && (CZ.Common.tooltipMode == "timeline")) {
-          CZ.Common.tooltipMode = "default";
-          CZ.Common.stopAnimationTooltip();
-          $(".bubbleInfo").attr("id", "defaultBox");
+        if (this.tooltipIsShown && this.vc.tooltipMode === 'timeline') {
+          this.vc.tooltipMode = 'default';
+          this.vc.hideTooltip();
           this.tooltipIsShown = false;
         }
-        */
       }
 
       this.settings.strokeStyle = timelineinfo.strokeStyle ? timelineinfo.strokeStyle : constants.timelineBorderColor;
@@ -2026,30 +1991,26 @@ class ContentItem extends CanvasDynamicLOD {
         if (curZl >= constants.contentItemShowContentZoomLevel)
           return null;
 
-        var container = new ContainerElement(vc, layerid, id + "__content", vx, vy, vw, vh);
+        const container = new ContainerElement(vc, layerid, id + "__content", vx, vy, vw, vh);
 
-        // Media
-        var mediaID = id + "__media__";
+        const mediaID = id + "__media__";
+        const { uri, title } = this.contentItem;
+        const mediaType = this.contentItem.toLowerCase();
 
-        var uri = this.contentItem.uri;
-        //this.contentItem.uri = CZ.Service.MakeSecureUri(uri);
-
-        var imageElem = null;
-        if (this.contentItem.mediaType.toLowerCase() === 'image' || this.contentItem.mediaType.toLowerCase() === 'picture') {
-          imageElem = VCContent.addImage(container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, this.contentItem.uri);
-        } else if (this.contentItem.mediaType.toLowerCase() === 'video') {
-          VCContent.addVideo(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
-        } else if (this.contentItem.mediaType.toLowerCase() === 'audio') {
+        if (mediaType === 'image' || mediaType === 'picture') {
+          VCContent.addImage(container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, uri);
+        } else if (mediaType === 'video') {
+          VCContent.addVideo(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
+        } else if (mediaType === 'audio') {
           mediaTop += constants.contentItemAudioTopMargin * vh;
           mediaHeight = vh * constants.contentItemAudioHeight;
-          addAudio(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
-        } else if (this.contentItem.mediaType.toLowerCase() === 'pdf') {
-          VCContent.addPdf(container, layerid, mediaID, this.contentItem.uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
+          addAudio(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
+        } else if (mediaType === 'pdf') {
+          VCContent.addPdf(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
         }
 
         // Title
-        var titleText = this.contentItem.title;
-        addText(container, layerid, id + "__title__", vx + leftOffset, titleTop, titleTop + titleHeight / 2.0, 0.9 * titleHeight, titleText, {
+        addText(container, layerid, id + "__title__", vx + leftOffset, titleTop, titleTop + titleHeight / 2.0, 0.9 * titleHeight, title, {
           fontName: constants.contentItemHeaderFontName,
           fillStyle: constants.contentItemHeaderFontColor,
           textBaseline: 'middle',
@@ -2207,28 +2168,28 @@ class CanvasInfodot extends CanvasCircle {
       // it can be null because of mouse events sequence: mouseenter for infodot -> mousehover for timeline -> mouseunhover for timeline
       if (this.vc.currentlyHoveredTimeline != null) {
         // stop active tooltip fadein animation and hide tooltip
-        //CZ.Common.stopAnimationTooltip();
+        this.vc.hideTooltip();
         this.vc.currentlyHoveredTimeline.tooltipIsShown = false;
       }
 
-      $(".bubbleInfo span").text(infodotDescription.title);
-      this.panelWidth = $('.bubbleInfo').outerWidth(); // complete width of tooltip panel
-      this.panelHeight = $('.bubbleInfo').outerHeight(); // complete height of tooltip panel
+      const tooltip = $('.vc-tooltip');
 
-      //CZ.Common.tooltipMode = "infodot"; //set tooltip mode to infodot
+      tooltip.find('span').text(infodotDescription.title);
 
+      this.panelWidth = tooltip.outerWidth(); // complete width of tooltip panel
+      this.panelHeight = tooltip.outerHeight(); // complete height of tooltip panel
 
-      // start tooltip fadein animation for this infodot
-      if ((this.tooltipEnabled == true) && (this.tooltipIsShown == false)) {
+      this.vc.tooltipMode = 'infodot';
+
+      if (this.tooltipEnabled && !this.tooltipIsShown) {
         this.tooltipIsShown = true;
-        $(".bubbleInfo").attr("id", "defaultBox");
-        //CZ.Common.animationTooltipRunning = $('.bubbleInfo').fadeIn();
+        tooltip.addClass('visible');
       }
 
       this.vc.cursorPosition = time;
       this.vc.currentlyHoveredInfodot = this;
-      this.vc._setConstraintsByInfodotHover(this);
-      this.vc.RaiseCursorChanged();
+      this.vc.setConstraintsByInfodotHover(this);
+      this.vc.raiseCursorChanged();
     };
 
     this.onmouseleave = function (e) {
@@ -2237,16 +2198,15 @@ class CanvasInfodot extends CanvasCircle {
       this.settings.lineWidth = constants.infoDotBorderWidth * radv;
       this.vc.requestInvalidate();
 
-      // stop active fadein animation and hide tooltip
-      //if (this.tooltipIsShown == true)
-        //CZ.Common.stopAnimationTooltip();
+      if (this.tooltipIsShown)
+        this.vc.hideTooltip();
 
-      //this.tooltipIsShown = false;
-      //CZ.Common.tooltipMode = "default";
+      this.tooltipIsShown = false;
+      this.vc.tooltipMode = 'default';
 
       this.vc.currentlyHoveredInfodot = undefined;
-      this.vc._setConstraintsByInfodotHover(undefined);
-      this.vc.RaiseCursorChanged();
+      this.vc.setConstraintsByInfodotHover(undefined);
+      this.vc.raiseCursorChanged();
     };
 
     this.onmouseclick = function (e) {
@@ -2304,13 +2264,13 @@ class CanvasInfodot extends CanvasCircle {
 
         // stop active fadein animation and hide tooltip
         if (this.tooltipIsShown == true) {
-          //CZ.Common.stopAnimationTooltip();
+          this.vc.hideTooltip();
           this.tooltipIsShown = false;
         }
 
         var contentItem = null;
 
-        if (ontentItems.length > 0) {
+        if (contentItems.length > 0) {
           contentItem = new ContainerElement(vc, layerid, id + "__contentItems", root.x, root.y, 2 * innerRad, 2 * innerRad);
           var items = buildVcContentItems(contentItems, time, vyc, innerRad, vc, layerid);
           if (items)

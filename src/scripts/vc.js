@@ -49,8 +49,6 @@ export default function VirtualCanvas() {
       this.canvasHeight = null;
 
       this.requestNewFrame = false;
-
-      this.animationTooltipRunning = null;
       this.tooltipMode = 'default';
 
       this.cursorPositionChangedEvent = $.Event('cursorPositionChanged');
@@ -202,13 +200,14 @@ export default function VirtualCanvas() {
     },
 
     updateTooltipPosition: function (position) {
+      if (this.tooltipMode !== 'infodot' && this.tooltipMode !== 'timeline') return;
+
       const screenPoint = this.viewport.pointVirtualToScreen(position.x, position.y);
       const heigthOffset = 17;
 
-      const obj = null;
-
-      if (this.tooltipMode == 'infodot') obj = this.currentlyHoveredInfodot;
-      else if (this.tooltipMode == 'timeline') obj = this.currentlyHoveredTimeline;
+      const obj = this.tooltipMode == 'infodot'
+        ? this.currentlyHoveredInfodot
+        : this.currentlyHoveredTimeline;
 
       if (!obj) return;
 
@@ -226,8 +225,7 @@ export default function VirtualCanvas() {
       }
 
       // Update tooltip position.
-      $('.bubbleInfo').css({
-        position: 'absolute',
+      $('.vc-tooltip').css({
         top: screenPoint.y,
         left: screenPoint.x
       });
@@ -311,12 +309,12 @@ export default function VirtualCanvas() {
       if ((this.currentlyHoveredInfodot && this.currentlyHoveredInfodot.tooltipEnabled) || (this.currentlyHoveredTimeline && this.currentlyHoveredTimeline.tooltipEnabled && this.tooltipMode !== 'infodot')) {
         let obj = null;
 
-        if (this.tooltipMode == 'infodot') obj = this.currentlyHoveredInfodot;
-        else if (this.tooltipMode == 'timeline') obj = this.currentlyHoveredTimeline;
+        if (this.tooltipMode === 'infodot') obj = this.currentlyHoveredInfodot;
+        else if (this.tooltipMode === 'timeline') obj = this.currentlyHoveredTimeline;
 
         if (obj && !obj.tooltipIsShown) {
           obj.tooltipIsShown = true;
-          this.animationTooltipRunning = $('.bubbleInfo').fadeIn();
+          $('.vc-tooltip').addClass('visible');
         }
 
         this.updateTooltipPosition(position);
@@ -627,18 +625,8 @@ export default function VirtualCanvas() {
       this.bottomCloak.css('height', `${Math.max(0, viewport.height - bottom)}px`);
     },
 
-    stopAnimationTooltip: function () {
-      if (this.animationTooltipRunning != null) {
-        $('.bubbleInfo').stop();
-        $('.bubbleInfo').css('opacity', '0.9');
-        $('.bubbleInfo').css('filter', 'alpha(opacity=90)');
-        $('.bubbleInfo').css('-moz-opacity', '0.9');
-
-        this.animationTooltipRunning = null;
-
-        $('.bubbleInfo').attr('id', 'defaultBox');
-        $('.bubbleInfo').hide();
-      }
+    hideTooltip: function () {
+      $('.vc-tooltip').removeClass('visible');
     },
   });
 }
