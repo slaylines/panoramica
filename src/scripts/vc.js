@@ -203,7 +203,7 @@ export default function VirtualCanvas() {
       if (this.tooltipMode !== 'infodot' && this.tooltipMode !== 'timeline') return;
 
       const screenPoint = this.viewport.pointVirtualToScreen(position.x, position.y);
-      const heigthOffset = 17;
+      const offset = 20;
 
       const obj = this.tooltipMode == 'infodot'
         ? this.currentlyHoveredInfodot
@@ -211,24 +211,22 @@ export default function VirtualCanvas() {
 
       if (!obj) return;
 
-      const width = parseInt(screenPoint.x) + obj.panelWidth; // position of right edge of tooltip's panel
-      const height = parseInt(screenPoint.y) + obj.panelHeight + heigthOffset; // position of bottom edge of tooltip's panel
+      const tooltip = $('.vc-tooltip');
+      const width = tooltip.width() + offset;
+      const height = tooltip.height() + offset;
 
       // tooltip goes beyond right edge of canvas
-      if (width > this.canvasWidth) {
-        screenPoint.x = this.canvasWidth - obj.panelWidth;
+      if (screenPoint.x + width > this.canvasWidth) {
+        screenPoint.x = this.canvasWidth - width;
       }
 
       // tooltip goes beyond bottom edge of canvas
-      if (height > this.canvasHeight) {
-        screenPoint.y = this.canvasHeight - obj.panelHeight - heigthOffset + 1;
+      if (screenPoint.y + height > this.canvasHeight) {
+        screenPoint.y = this.canvasHeight - height;
       }
 
       // Update tooltip position.
-      $('.vc-tooltip').css({
-        top: screenPoint.y,
-        left: screenPoint.x
-      });
+      tooltip.css({ top: screenPoint.y, left: screenPoint.x });
     },
 
     mouseMove: function (event) {
@@ -404,11 +402,8 @@ export default function VirtualCanvas() {
         }
       });
 
-      //this.canvasWidth = Common.vc.width();
-      //this.canvasHeight = Common.vc.height();
-
-      this.canvasWidth = 816;
-      this.canvasHeight = 550;
+      this.canvasWidth = this.element[0].clientWidth;
+      this.canvasHeight = this.element[0].clientHeight;
 
       this.setVisible(this.options.visible);
     },

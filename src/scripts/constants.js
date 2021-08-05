@@ -23,8 +23,8 @@ export const hoverAnimationSeconds = 2;
 export const fallbackImageUri = '/images/Temp-Thumbnail2.png';
 
 // Styles of timelines
-export const timelineHeaderMargin = 1.0 / 12.0;
-export const timelineHeaderSize = 1.0 / 9.0;
+export const timelineHeaderMargin = 1.0 / 8.0;
+export const timelineHeaderSize = 1.0 / 5.0;
 export const timelineTooltipMaxHeaderSize = 5;
 export const timelineHeaderFontName = 'Arial';
 export const timelineHeaderFontColor = 'rgb(232,232,232)';

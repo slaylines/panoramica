@@ -481,12 +481,11 @@ export default class Layout {
           if (eb.left < timeline.left) {
             eb.left = timeline.left;
             eb.right = eb.left + eb.size;
-            eb.isDeposed = true;
           } else if (eb.right > timeline.right) {
             eb.right = timeline.right;
             eb.left = timeline.right - eb.size;
-            eb.isDeposed = true;
           }
+          eb.isDeposed = true;
 
           //if y-offset of exhibit is user-defined calculate realY
           //else prepare it to auto-calculation

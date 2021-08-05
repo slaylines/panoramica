@@ -32,30 +32,51 @@ const addChild = (parent, element, suppresCheck) => {
 If a child has onRemove() method, it is called right after removing of the child and clearing of all its children (recursively).
 */
 const removeChild = (parent, id) => {
-  var n = parent.children.length;
-  for (var i = 0; i < n; i++) {
-      var child = parent.children[i];
-      if (child.id == id) {
-          // remove element from hash map of animating elements in dynamic layout animation
-          if (typeof CZ.Layout.animatingElements[child.id] !== 'undefined') {
-              delete CZ.Layout.animatingElements[child.id];
-              CZ.Layout.animatingElements.length--;
-          }
+  for (var i = 0; i < parent.children.length; i++) {
+    const child = parent.children[i];
 
-          parent.children.splice(i, 1);
-          clear(child);
-          if (child.onRemove)
-              child.onRemove();
-          child.parent = null;
-          return true;
+    if (child.id === id) {
+      // remove element from hash map of animating elements in dynamic layout animation
+      if (typeof CZ.Layout.animatingElements[child.id] !== 'undefined') {
+        delete CZ.Layout.animatingElements[child.id];
+        CZ.Layout.animatingElements.length--;
       }
+
+      parent.children.splice(i, 1);
+      clear(child);
+
+      if (child.onRemove) child.onRemove();
+      child.parent = null;
+      return true;
+    }
   }
   return false;
 };
 
+/* Removes all children elements of this object (recursively).
+@remarks    The method must be called within the BeginEdit/EndEdit of the root item.
+For each descendant element that has onRemove() method, the method is called right after its removing and clearing of all its children (recursively).
+*/
+const clear = (element) => {
+  for (var i = 0; i < element.children.length; i++) {
+    const child = element.children[i];
+
+    // remove element from hash map of animating elements in dynamic layout animation
+    if (typeof CZ.Layout.animatingElements[child.id] !== 'undefined') {
+      delete CZ.Layout.animatingElements[child.id];
+      CZ.Layout.animatingElements.length--;
+    }
+
+    clear(child);
+    child.parent = null;
+    if (child.onRemove) child.onRemove();
+  }
+  element.children = [];
+};
+
 const turnIsRenderedOff = (element) => {
   element.isRendered = false;
-  
+
   if (element.onIsRenderedChanged) element.onIsRenderedChanged();
 
   let { length } = element.children;
@@ -64,7 +85,7 @@ const turnIsRenderedOff = (element) => {
     if (element.children[length].isRendered)
       turnIsRenderedOff(element.children[length]);
   }
-}
+};
 
 const zoomToElementHandler = (sender, e, scale /* n [time units] / m [pixels] */ ) => {
   const elementclick = $.Event('elementclick');
@@ -347,22 +368,6 @@ export const addRectangle = (element, layerid, id, vx, vy, vw, vh, settings) => 
 
 export class VCContent {
   constructor() {
-    /* Adds a circle as a child of the given virtual canvas element.
-    @param element   (CanvasElement) Parent element, whose children is to be new element.
-    @param layerid   (any type) id of the layer for this element
-    @param id        (any type) id of an element
-    @param vxc       (number) center x in virtual space
-    @param vyc       (number) center y in virtual space
-    @param vradius   (number) radius in virtual space
-    @param settings  ({strokeStyle,lineWidth,fillStyle}) Parameters of the circle appearance
-    @remarks
-    The element is always rendered as a circle and ignores the aspect ratio of the viewport.
-    For this, circle radius in pixels is computed from its virtual width.
-    */
-    this.addCircle = function (element, layerid, id, vxc, vyc, vradius, settings, suppressCheck) {
-      return this.addChild(element, new CanvasCircle(element.vc, layerid, id, vxc, vyc, vradius, settings), suppressCheck);
-    };
-
     /* Adds an image as a child of the given virtual canvas element.
     @param element   (CanvasElement) Parent element, whose children is to be new element.
     @param layerid   (any type) id of the layer for this element
@@ -441,147 +446,6 @@ export class VCContent {
     */
     this.addMultiLineText = function (element, layerid, id, vx, vy, baseline, vh, text, lineWidth, settings) {
       return this.addChild(element, new CanvasMultiLineTextItem(element.vc, layerid, id, vx, vy, vh, text, lineWidth, settings), false);
-    }
-
-    function turnIsRenderedOff(element) {
-      element.isRendered = false;
-      if (element.onIsRenderedChanged)
-        element.onIsRenderedChanged();
-      var n = element.children.length;
-      for (; --n >= 0;) {
-        if (element.children[n].isRendered)
-          turnIsRenderedOff(element.children[n]);
-      }
-    }
-
-    /* Adds a CanvasElement instance to the children array of this element.
-    @param  element     (CanvasElement) new child of this element
-    @returns    the added element
-    @remarks    Bounding box of element must be included in bounding box of the this element. Otherwise, throws an exception.
-    The method must be called within the BeginEdit/EndEdit of the root item.
-    */
-    this.addChild = function (parent, element, suppresCheck) {
-      var isWithin = parent.width == Infinity || (element.x >= parent.x && element.x + element.width <= parent.x + parent.width) && (element.y >= parent.y && element.y + element.height <= parent.y + parent.height);
-
-      parent.children.push(element);
-      element.parent = parent;
-      return element;
-    };
-
-    /* Looks up an element with given id in the children of this element and removes it with its children.
-    @param id   (any) id of an element
-    @returns    true, if element found and removed; otherwise, false.
-    @remarks    The method must be called within the BeginEdit/EndEdit of the root item.
-    If a child has onRemove() method, it is called right after removing of the child and clearing of all its children (recursively).
-    */
-    this.removeChild = function (parent, id) {
-      var n = parent.children.length;
-      for (var i = 0; i < n; i++) {
-        var child = parent.children[i];
-        if (child.id == id) {
-          // remove element from hash map of animating elements in dynamic layout animation
-          if (typeof CZ.Layout.animatingElements[child.id] !== 'undefined') {
-            delete CZ.Layout.animatingElements[child.id];
-            CZ.Layout.animatingElements.length--;
-          }
-
-          parent.children.splice(i, 1);
-          clear(child);
-          if (child.onRemove)
-            child.onRemove();
-          child.parent = null;
-          return true;
-        }
-      }
-      return false;
-    };
-
-    var removeTimeline = function (timeline) {
-      for (var i = 0; i < timeline.children.length; i++) {
-        var child = timeline.children[i];
-
-        if (timeline.onRemove)
-          timeline.onRemove();
-
-        child.parent = timeline.parent;
-      }
-    };
-
-    /* Removes all children elements of this object (recursively).
-    @remarks    The method must be called within the BeginEdit/EndEdit of the root item.
-    For each descendant element that has onRemove() method, the method is called right after its removing and clearing of all its children (recursively).
-    */
-    function clear(element) {
-      var n = element.children.length;
-      for (var i = 0; i < n; i++) {
-        var child = element.children[i];
-
-        // remove element from hash map of animating elements in dynamic layout animation
-        if (typeof CZ.Layout.animatingElements[child.id] !== 'undefined') {
-          delete CZ.Layout.animatingElements[child.id];
-          CZ.Layout.animatingElements.length--;
-        }
-
-        clear(child);
-        if (child.onRemove)
-          child.onRemove();
-        child.parent = null;
-      }
-      element.children = [];
-    }
-
-    /* Finds and returns a child element with given id (no recursion)
-    @param id   (any) id of a child element
-    @returns    The children object (derived from CanvasContentItem)
-    @exception  if there is no child with the id
-    */
-    function getChild(element, id) {
-      var n = element.children.length;
-      for (var i = 0; i < n; i++) {
-        if (element.children[i].id == id)
-          return element.children[i];
-      }
-      throw "There is no child with id [" + id + "]";
-    }
-
-    /*A popup window element
-     */
-    function addPopupWindow(url, id, width, height, scrollbars, resizable) {
-      var w = width;
-      var h = height;
-      var s = scrollbars;
-      var r = resizable;
-      var features = 'width=' + w + ',height=' + h + ',scrollbars=' + s + ',resizable=' + r;
-      window.open(url, id, features);
-    }
-
-    /*
-    @param infodot {CanvasElement}  Parent of the content item
-    @param cid  {string}            id of the content item
-    Returns {id,x,y,width,height,parent,type,vc} of a content item even if it is not presented yet in the infodot children collection.
-    */
-    function getContentItem(infodot, cid) {
-      if (infodot.type !== 'infodot' || infodot.contentItems.length === 0)
-        return null;
-      var radv = infodot.width / 2;
-      var innerRad = radv - constants.infoDotHoveredBorderWidth * radv;
-      var citems = buildVcContentItems(infodot.contentItems, infodot.x + infodot.width / 2, infodot.y + infodot.height / 2, innerRad, infodot.vc, infodot.layerid);
-      if (!citems)
-        return null;
-      for (var i = 0; i < citems.length; i++) {
-        if (citems[i].id == cid)
-          return {
-            id: cid,
-            x: citems[i].x,
-            y: citems[i].y,
-            width: citems[i].width,
-            height: citems[i].height,
-            parent: infodot,
-            type: "contentItem",
-            vc: infodot.vc
-          };
-      }
-      return null;
     }
   }
 }
@@ -2069,7 +1933,6 @@ class ContentItem extends CanvasDynamicLOD {
         }
         var sz = 1 << zl;
         var thumbnailUri = constants.contentItemThumbnailBaseUri + 'x' + sz + '/' + contentItem.guid + '.png';
-        //thumbnailUri = CZ.Service.MakeSecureUri(thumbnailUri);
         return {
           zoomLevel: newZl,
           content: new CanvasImage(vc, layerid, id + "@" + 1, thumbnailUri, vx, vy, vw, vh)
@@ -2204,9 +2067,6 @@ class CanvasInfodot extends CanvasCircle {
       return zoomToElementHandler(this, e, 1.0);
     };
 
-    //Bibliography flag accroding to BUG 215750
-    //var bibliographyFlag = true;
-
     // Building dynamic LOD content
     var root = new CanvasDynamicLOD(vc, layerid, id + "_dlod", time - innerRad, vyc - innerRad, 2 * innerRad, 2 * innerRad);
     root.removeWhenInvisible = true;
@@ -2218,10 +2078,6 @@ class CanvasInfodot extends CanvasCircle {
 
       // Showing only thumbnails for every content item of the infodot
       if (newZl >= constants.infodotShowContentThumbZoomLevel && newZl < constants.infodotShowContentZoomLevel) {
-        //var URL = CZ.UrlNav.getURL();
-        //if (typeof URL.hash.params != 'undefined' && typeof URL.hash.params['b'] != 'undefined')
-          //bibliographyFlag = false;
-
         if (curZl >= constants.infodotShowContentThumbZoomLevel && curZl < constants.infodotShowContentZoomLevel)
           return null;
 
