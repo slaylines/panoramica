@@ -383,9 +383,9 @@ export const addRectangle = (element, layerid, id, vx, vy, vw, vh, settings) => 
 @param onload (optional callback function) called when image is loaded
 @param parent (CanvasElement) Parent element, whose children is to be new element.
 */
-export const addImage = (element, layerid, id, vx, vy, vw, vh, imgSrc, onload) => {
+export const addImage = (element, layerid, id, vx, vy, vw, vh, imgSrc) => {
   if (vw <= 0 || vh <= 0) throw "Image size must be positive";
-  return addChild(element, new CanvasImage(element.vc, layerid, id, imgSrc, vx, vy, vw, vh, onload), false);
+  return addChild(element, new CanvasImage(element.vc, layerid, id, imgSrc, vx, vy, vw, vh), false);
 };
 
 /* Adds a video as a child of the given virtual canvas element.
@@ -403,40 +403,20 @@ export const addVideo = (element, layerid, id, videoSource, vx, vy, vw, vh, z) =
   return addChild(element, new CanvasVideoItem(element.vc, layerid, id, videoSource, vx, vy, vw, vh, z), false);
 };
 
-export class VCContent {
-  constructor() {
-    /* Adds a pdf as a child of the given virtual canvas element.
-    @param element   (CanvasElement) Parent element, whose children is to be new element.
-    @param layerid   (any type) id of the layer for this element
-    @param id   (any type) id of an element
-    @param pdfSource (string) pdf URI
-    @param vx   (number) x of left top corner in virtual space
-    @param vy   (number) y of left top corner in virtual space
-    @param vw   (number) width of a bounding box in virtual space
-    @param vh   (number) height of a bounding box in virtual space
-    @param z (number) z-index
-    */
-    this.addPdf = function (element, layerid, id, pdfSource, vx, vy, vw, vh, z) {
-      return this.addChild(element, new CanvasPdfItem(element.vc, layerid, id, pdfSource, vx, vy, vw, vh, z), false);
-    };
-
-    /*  Adds a multiline text element as a child of the given virtual canvas element.
-    @param element   (CanvasElement) Parent element, whose children is to be new element.
-    @param layerid   (any type) id of the layer for this element
-    @param id   (any type) id of an element
-    @param vx   (number) x of left top corner in virtual space
-    @param vy   (number) y of left top corner in virtual space
-    @param vh   (number) height of a text
-    @param lineWidth (number) width of a line to text output
-    @param settings     ({ fillStyle, fontName }) Parameters of the text appearance
-    @remarks
-    Text width is adjusted using measureText() on first render call.
-    */
-    this.addMultiLineText = function (element, layerid, id, vx, vy, baseline, vh, text, lineWidth, settings) {
-      return this.addChild(element, new CanvasMultiLineTextItem(element.vc, layerid, id, vx, vy, vh, text, lineWidth, settings), false);
-    }
-  }
-}
+/* Adds a pdf as a child of the given virtual canvas element.
+@param element   (CanvasElement) Parent element, whose children is to be new element.
+@param layerid   (any type) id of the layer for this element
+@param id   (any type) id of an element
+@param pdfSource (string) pdf URI
+@param vx   (number) x of left top corner in virtual space
+@param vy   (number) y of left top corner in virtual space
+@param vw   (number) width of a bounding box in virtual space
+@param vh   (number) height of a bounding box in virtual space
+@param z (number) z-index
+*/
+export const addPdf = (element, layerid, id, pdfSource, vx, vy, vw, vh, z) => {
+  return addChild(element, new CanvasPdfItem(element.vc, layerid, id, pdfSource, vx, vy, vw, vh, z), false);
+};
 
 /*  Represents a base element that can be added to the VirtualCanvas.
 @remarks CanvasElement has extension in virtual space, that enables to check visibility of an object and render it.
@@ -1347,23 +1327,20 @@ class CanvasMultiLineTextItem extends CanvasElement {
 optional property onLoad() is called if defined when the image is loaded and the element is completely initialized.
 */
 class CanvasImage extends CanvasElement {
-  constructor(vc, layerid, id, imageSource, vx, vy, vw, vh, onload) {
+  constructor(vc, layerid, id, imageSource, vx, vy, vw, vh) {
     super(vc, layerid, id, vx, vy, vw, vh);
 
-    this.onload = onload;
-    this.isLoading = true;
+    this.img = new Image();
+    this.img.setAttribute('crossOrigin', '');
+    this.img.src = imageSource;
 
-    const img = new Image();
-    this.img = img;
-    this.img.isLoaded = false;
-
-    var onCanvasImageLoad = function (s) {
-      img['isLoading'] = false;
-      if (!img['isRemoved']) {
+    const onCanvasImageLoad = () => {
+      this.img.isLoading = false;
+      if (!this.img.isRemoved) {
         // adjusting aspect ratio
-        if (img.naturalHeight) {
+        if (this.img.naturalHeight) {
           var ar0 = this.width / this.height;
-          var ar1 = img.naturalWidth / img.naturalHeight;
+          var ar1 = this.img.naturalWidth / this.img.naturalHeight;
           if (ar0 > ar1) {
             // vh ~ img.height, vw is to be adjusted
             var imgWidth = ar1 * this.height;
@@ -1379,28 +1356,25 @@ class CanvasImage extends CanvasElement {
           }
         }
 
-        img['isLoaded'] = true;
-        if (this.onLoad) this.onLoad();
+        this.img.isLoaded = true;
         vc.requestInvalidate();
       } else {
-        delete img['isRemoved'];
-        delete img['isLoaded'];
+        delete this.img.isRemoved;
+        delete this.img.isLoaded;
       }
     };
-    var onCanvasImageLoadError = function (e) {
-      if (!img['isFallback']) {
-        img['isFallback'] = true;
-        img.src = constants.fallbackImageUri;
+
+    const onCanvasImageError = () => {
+      if (!this.img['isFallback']) {
+        this.img['isFallback'] = true;
+        this.img.src = constants.fallbackImageUri;
       } else {
         throw "Cannot load an image!";
       }
     };
 
     this.img.addEventListener("load", onCanvasImageLoad, false);
-    if (onload)
-      this.img.addEventListener("load", onload, false);
-    this.img.addEventListener("error", onCanvasImageLoadError, false);
-    this.img.src = imageSource;
+    this.img.addEventListener("error", onCanvasImageError, false);
 
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
       if (!this.img.isLoaded)
@@ -1844,10 +1818,6 @@ class ContentItem extends CanvasDynamicLOD {
           addImage(container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, uri);
         } else if (mediaType === 'video') {
           addVideo(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
-        } else if (mediaType === 'audio') {
-          mediaTop += constants.contentItemAudioTopMargin * vh;
-          mediaHeight = vh * constants.contentItemAudioHeight;
-          addAudio(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
         } else if (mediaType === 'pdf') {
           addPdf(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
         }
