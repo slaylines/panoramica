@@ -42,6 +42,23 @@
   }
 }
 
+.vc-content-item-description {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: transparent;
+  color: rgb(232,232,232);
+  font-size: 10px;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+
+  .text {
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: inherit;
+  }
+}
+
 .unselectable {
   -webkit-user-select: none;
   -khtml-user-select: none;

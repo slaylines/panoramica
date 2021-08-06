@@ -8,10 +8,10 @@ export const sqr = d => d * d;
 export const preventBubble = event => {
   if (!event) return;
 
-  if (e.stopPropagation) {
-    e.stopPropagation();
+  if (event.stopPropagation) {
+    event.stopPropagation();
   } else {
-    e.cancelBubble = true;
+    event.cancelBubble = true;
   }
 };
 

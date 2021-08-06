@@ -22,7 +22,8 @@ export const data = {
           mediaSource: "https://commons.wikimedia.org/wiki/File:Milky_Way_Galaxy.jpg",
           mediaType: "picture",
           uri: "https://upload.wikimedia.org/wikipedia/commons/8/82/Milky_Way_Galaxy.jpg",
-        }, {
+        }
+        /*, {
           id: "92c2e8d4-b45c-48aa-bfe4-69548f754133",
           title: "Origins of The First Stars - Part 1",
           description: "Part 1 examines the conditions that led up to the first stars lighting up. By two hundred million years after the Big Bang, the Universe had become a very dark and cold place. Suddenly 'hot spots' of light and energy appeared from the darkness. Where did they come from?",
@@ -38,7 +39,7 @@ export const data = {
           mediaSource: "",
           mediaType: "pdf",
           uri: "https://www.africau.edu/images/default/sample.pdf",
-        }
+        },*/
       ],
       id: 'c726a9c3-63ec-455c-ac5d-0f84643f09a6',
       time: -13200000000,

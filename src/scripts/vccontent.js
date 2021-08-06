@@ -31,21 +31,19 @@ const addChild = (parent, element, suppresCheck) => {
 @remarks    The method must be called within the BeginEdit/EndEdit of the root item.
 If a child has onRemove() method, it is called right after removing of the child and clearing of all its children (recursively).
 */
-const removeChild = (parent, id) => {
+const removeChild = (vc, parent, id) => {
   for (var i = 0; i < parent.children.length; i++) {
     const child = parent.children[i];
 
     if (child.id === id) {
       // remove element from hash map of animating elements in dynamic layout animation
-      /*
-      if (typeof CZ.Layout.animatingElements[child.id] !== 'undefined') {
-        delete CZ.Layout.animatingElements[child.id];
-        CZ.Layout.animatingElements.length--;
+      if (typeof vc.layout.animatingElements[child.id] !== 'undefined') {
+        delete vc.layout.animatingElements[child.id];
+        vc.layout.animatingElements.length--;
       }
-      */
 
       parent.children.splice(i, 1);
-      clear(child);
+      clear(vc, child);
 
       if (child.onRemove) child.onRemove();
       child.parent = null;
@@ -59,19 +57,17 @@ const removeChild = (parent, id) => {
 @remarks    The method must be called within the BeginEdit/EndEdit of the root item.
 For each descendant element that has onRemove() method, the method is called right after its removing and clearing of all its children (recursively).
 */
-const clear = (element) => {
+const clear = (vc, element) => {
   for (var i = 0; i < element.children.length; i++) {
     const child = element.children[i];
 
     // remove element from hash map of animating elements in dynamic layout animation
-    /*
-    if (typeof CZ.Layout.animatingElements[child.id] !== 'undefined') {
-      delete CZ.Layout.animatingElements[child.id];
-      CZ.Layout.animatingElements.length--;
+    if (typeof vc.layout.animatingElements[child.id] !== 'undefined') {
+      delete vc.layout.animatingElements[child.id];
+      vc.layout.animatingElements.length--;
     }
-    */
 
-    clear(child);
+    clear(vc, child);
     child.parent = null;
     if (child.onRemove) child.onRemove();
   }
@@ -560,7 +556,8 @@ class CanvasDynamicLOD extends CanvasElement {
         if (lopacity != this.prevContent.opacity)
           doInvalidate = true;
         if (lopacity == 0) {
-          removeChild(this, this.prevContent.id);
+
+          removeChild(vc, this, this.prevContent.id);
           this.prevContent = null;
         } else {
           this.prevContent.opacity = lopacity;
@@ -585,16 +582,16 @@ class CanvasDynamicLOD extends CanvasElement {
           this.asyncContent = null;
         }
         if (this.prevContent) {
-          removeChild(this, this.prevContent.id);
+          removeChild(vc, this, this.prevContent.id);
           this.prevContent = null;
         }
         if (this.newContent) {
-          removeChild(this, this.newContent.id);
+          removeChild(vc, this, this.newContent.id);
           this.newContent.content.onLoad = null;
           this.newContent = null;
         }
         if (this.content) {
-          removeChild(this, this.content.id);
+          removeChild(vc, this, this.content.id);
           this.content = null;
         }
 
@@ -694,8 +691,6 @@ class ContainerElement extends CanvasElement {
     super(vc, layerid, id, vx, vy, vw, vh);
 
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {};
-
-    this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
 
@@ -811,8 +806,6 @@ class CanvasRectangle extends CanvasElement {
     this.isVisibleOnScreen = function (scale) {
       return this.width / scale >= constants.minTimelineWidth;
     };
-
-    this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
 
@@ -1060,8 +1053,6 @@ class CanvasCircle extends CanvasElement {
       var len2 = utils.sqr(point_v.x - vxc) + utils.sqr(point_v.y - this.y - this.height / 2);
       return len2 <= vradius * vradius;
     };
-
-    this.prototype = new CanvasElement(vc, layerid, id, vxc - vradius / 2, vyc - vradius / 2, vradius, vradius);
   }
 }
 
@@ -1310,8 +1301,6 @@ class CanvasMultiLineTextItem extends CanvasElement {
       textOutput(ctx, this.text, p.x, p.y, height, lineWidth * height);
       // ctx.fillText(this.text, p.x, p.y);
     };
-
-    this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vh * 10, vh);
   }
 }
 
@@ -1383,16 +1372,13 @@ class CanvasImage extends CanvasElement {
       ctx.globalAlpha = opacity;
       ctx.drawImage(this.img, p.x, p.y, size_p.x, size_p.y);
     };
+
     this.onRemove = function () {
       this.img.removeEventListener("load", onCanvasImageLoad, false);
-      this.img.removeEventListener("error", onCanvasImageLoadError, false);
-      if (this.onload)
-        this.img.removeEventListener("load", this.onload, false);
+      this.img.removeEventListener("error", onCanvasImageError, false);
       this.img.isRemoved = true;
       delete this.img;
     };
-
-    this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
 
@@ -1505,8 +1491,6 @@ class CanvasDomItem extends CanvasElement {
         alert(ex.Description);
       }
     };
-
-    this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
 
@@ -1532,38 +1516,37 @@ class CanvasScrollTextItem extends CanvasDomItem {
     //Inside elemWrap, create child div with position:relative
     var elem = $("<div></div>", {
       id: "citext_" + id,
-      class: "contentItemDescription"
-    }).appendTo(vc);
+      class: "vc-content-item-description"
+    }).appendTo(vc.element);
 
     elem[0].addEventListener("mousemove", utils.preventBubble, false);
     elem[0].addEventListener("mousedown", utils.preventBubble, false);
     elem[0].addEventListener("DOMMouseScroll", utils.preventBubble, false);
     elem[0].addEventListener("mousewheel", utils.preventBubble, false);
+
     var textElem = $("<div style='position:relative;' class='text'></div>");
-    textElem.html(marked(text)).appendTo(elem);
+    textElem.html(text).appendTo(elem);
 
     //Initialize content
     this.initializeContent(elem[0]);
 
+    this.base_render = this.render;
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
-      //Scale new font size
       var fontSize = size_p.y / constants.contentItemDescriptionNumberOfLines;
       elem.css('font-size', fontSize + "px");
 
-      //super.render.call(this, ctx, visibleBox, viewport2d, size_p, opacity);
+      this.base_render(ctx, visibleBox, viewport2d, size_p, opacity);
     };
 
-    this.onRemove = function () {
-      //super.onRemove.call(this);
+    this.onRemove = () => {
       elem[0].removeEventListener("mousemove", utils.preventBubble, false);
       elem[0].removeEventListener("mouseup", utils.preventBubble, false);
       elem[0].removeEventListener("mousedown", utils.preventBubble, false);
       elem[0].removeEventListener("DOMMouseScroll", utils.preventBubble, false);
       elem[0].removeEventListener("mousewheel", utils.preventBubble, false);
+
       elem = undefined;
     };
-
-    this.prototype = new CanvasDomItem(vc, layerid, id, vx, vy, vw, vh, z);
   }
 }
 
@@ -1598,8 +1581,6 @@ class CanvasPdfItem extends CanvasDomItem {
     elem.setAttribute("controls", 'true');
 
     this.initializeContent(elem);
-
-    this.prototype = new CanvasDomItem(vc, layerid, id, vx, vy, vw, vh, z);
   }
 }
 
@@ -1626,106 +1607,6 @@ class CanvasVideoItem extends CanvasDomItem {
     elem.setAttribute("visible", 'true');
     elem.setAttribute("controls", 'true');
     this.initializeContent(elem);
-
-    this.prototype = new CanvasDomItem(vc, layerid, id, vx, vy, vw, vh, z);
-  }
-}
-
-/*Represents Audio element*/
-/*  Represents an image on a virtual canvas.
-@param audioSrc     audio source
-@param vx           x of left top corner in virtual space
-@param vy           y of left top corner in virtual space
-@param vw           width of in virtual space
-@param vh           height of in virtual space
-@param z            z-index
-@param settings     Parameters of the appearance
-*/
-class CanvasAudioItem extends CanvasDomItem {
-  constructor(vc, layerid, id, audioSrc, vx, vy, vw, vh, z) {
-    super(vc, layerid, id, vx, vy, vw, vh, z);
-
-    var elem = document.createElement('audio');
-    elem.setAttribute("id", id);
-    elem.setAttribute("src", audioSrc);
-    elem.setAttribute("visible", 'true');
-    elem.setAttribute("controls", 'true');
-    this.initializeContent(elem);
-
-    this.prototype = new CanvasDomItem(vc, layerid, id, vx, vy, vw, vh, z);
-  }
-}
-
-/**
- * Background image for a timeline.
- * @param vc      Virtual canvas.
- * @param layerid Name of rendering layer of virtual canvas.
- * @param id      ID of an element.
- * @param src     Image source.
- * @param vx      x of left top corner in virtual space.
- * @param vy      y of left top corner in virtual space.
- * @param vw      width of an image in virtual space.
- * @param vh      height of an image in virtual space.
- */
-class BackgroundImage extends CanvasElement {
-  constructor(vc, layerid, id, src, vx, vy, vw, vh) {
-    super(vc, layerid, id, vx, vy, vw, vh);
-
-    var onload = function () {
-      this.vc.requestInvalidate();
-    };
-
-    this.img = new Image();
-    this.img.addEventListener("load", onload, false);
-    this.img.src = src;
-
-    this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
-      if (!this.img.complete)
-        return;
-
-      var ptl = viewport2d.pointVirtualToScreen(this.x, this.y),
-        pbr = viewport2d.pointVirtualToScreen(this.x + this.width, this.y + this.height),
-        tw = pbr.x - ptl.x,
-        th = pbr.y - ptl.y,
-        iw = this.img.width,
-        ih = this.img.height,
-        vpw = viewport2d.width,
-        vph = viewport2d.height,
-        tiwr = tw / iw,
-        tihr = th / ih,
-        sxl = Math.floor(Math.max(0, -ptl.x) / tiwr),
-        syt = Math.floor(Math.max(0, -ptl.y) / tihr),
-        sxr = Math.floor(Math.max(0, pbr.x - vpw) / tiwr),
-        syb = Math.floor(Math.max(0, pbr.y - vph) / tihr),
-        sx = sxl,
-        sy = syt,
-        sw = iw - sxl - sxr,
-        sh = ih - syt - syb,
-        vx = sxl > 0 ? sxl * tiwr + ptl.x : ptl.x,
-        vy = syt > 0 ? syt * tihr + ptl.y : ptl.y,
-        vw = sw * tiwr,
-        vh = sh * tihr;
-
-      ctx.globalAlpha = opacity;
-
-      // NOTE: A special case when the image starts twitching.
-      if (sw === 1 && sh === 1) {
-        vx = Math.max(0, ptl.x);
-        vy = Math.max(0, ptl.y);
-        vw = Math.min(vpw, pbr.x) - vx;
-        vh = Math.min(vph, pbr.y) - vy;
-      }
-
-      if (this.img.naturalWidth && this.img.naturalHeight) {
-        ctx.drawImage(this.img, sx, sy, sw, sh, vx, vy, vw, vh);
-      }
-    };
-
-    this.onRemove = function () {
-      this.img.removeEventListener("load", onload, false);
-    };
-
-    this.prototype = new CanvasElement(vc, layerid, id, vx, vy, vw, vh);
   }
 }
 
@@ -1812,7 +1693,7 @@ class ContentItem extends CanvasDynamicLOD {
 
         const mediaID = id + "__media__";
         const { uri, title } = this.contentItem;
-        const mediaType = this.contentItem.toLowerCase();
+        const mediaType = this.contentItem.mediaType.toLowerCase();
 
         if (mediaType === 'image' || mediaType === 'picture') {
           addImage(container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, uri);
@@ -1842,7 +1723,7 @@ class ContentItem extends CanvasDynamicLOD {
               fontName: constants.contentItemHeaderFontName,
               fillStyle: constants.contentItemSourceFontColor,
               textBaseline: 'middle',
-              textAlign: 'right',
+              textAlign: 'center',
               opacity: 1,
               adjustWidth: true
             }, sw);
@@ -1897,8 +1778,6 @@ class ContentItem extends CanvasDynamicLOD {
         };
       }
     };
-
-    this.prototype = new CanvasDynamicLOD(vc, layerid, id, vx, vy, vw, vh);
   }
 }
 
