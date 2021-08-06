@@ -61,7 +61,6 @@ export const contentItemDescriptionNumberOfLines = 10;
 export const contentItemShowContentZoomLevel = 9;
 export const contentItemThumbnailMinLevel = 3;
 export const contentItemThumbnailMaxLevel = 7;
-export const contentItemThumbnailBaseUri = 'http://czbeta.blob.core.windows.net/images/';
 export const contentItemTopTitleHeight = 47.0 / 540;
 export const contentItemContentWidth = 480.0 / 520;
 export const contentItemVerticalMargin = 13.0 / 540;

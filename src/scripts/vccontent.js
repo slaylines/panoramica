@@ -37,10 +37,12 @@ const removeChild = (parent, id) => {
 
     if (child.id === id) {
       // remove element from hash map of animating elements in dynamic layout animation
+      /*
       if (typeof CZ.Layout.animatingElements[child.id] !== 'undefined') {
         delete CZ.Layout.animatingElements[child.id];
         CZ.Layout.animatingElements.length--;
       }
+      */
 
       parent.children.splice(i, 1);
       clear(child);
@@ -62,10 +64,12 @@ const clear = (element) => {
     const child = element.children[i];
 
     // remove element from hash map of animating elements in dynamic layout animation
+    /*
     if (typeof CZ.Layout.animatingElements[child.id] !== 'undefined') {
       delete CZ.Layout.animatingElements[child.id];
       CZ.Layout.animatingElements.length--;
     }
+    */
 
     clear(child);
     child.parent = null;
@@ -366,42 +370,41 @@ export const addRectangle = (element, layerid, id, vx, vy, vw, vh, settings) => 
   return addChild(element, new CanvasRectangle(element.vc, layerid, id, vx, vy, vw, vh, settings), false);
 };
 
+/* Adds an image as a child of the given virtual canvas element.
+@param element   (CanvasElement) Parent element, whose children is to be new element.
+@param layerid   (any type) id of the layer for this element
+@param id   (any type) id of an element
+@param vx   (number) x of left top corner in virtual space
+@param vy   (number) y of left top corner in virtual space
+@param vw   (number) width of a bounding box in virtual space
+@param vh   (number) height of a bounding box in virtual space
+@param z    (number) z-index
+@param imgSrc (string) image URI
+@param onload (optional callback function) called when image is loaded
+@param parent (CanvasElement) Parent element, whose children is to be new element.
+*/
+export const addImage = (element, layerid, id, vx, vy, vw, vh, imgSrc, onload) => {
+  if (vw <= 0 || vh <= 0) throw "Image size must be positive";
+  return addChild(element, new CanvasImage(element.vc, layerid, id, imgSrc, vx, vy, vw, vh, onload), false);
+};
+
+/* Adds a video as a child of the given virtual canvas element.
+@param element   (CanvasElement) Parent element, whose children is to be new element.
+@param layerid   (any type) id of the layer for this element
+@param id   (any type) id of an element
+@param videoSource (string) video URI
+@param vx   (number) x of left top corner in virtual space
+@param vy   (number) y of left top corner in virtual space
+@param vw   (number) width of a bounding box in virtual space
+@param vh   (number) height of a bounding box in virtual space
+@param z (number) z-index
+*/
+export const addVideo = (element, layerid, id, videoSource, vx, vy, vw, vh, z) => {
+  return addChild(element, new CanvasVideoItem(element.vc, layerid, id, videoSource, vx, vy, vw, vh, z), false);
+};
+
 export class VCContent {
   constructor() {
-    /* Adds an image as a child of the given virtual canvas element.
-    @param element   (CanvasElement) Parent element, whose children is to be new element.
-    @param layerid   (any type) id of the layer for this element
-    @param id   (any type) id of an element
-    @param vx   (number) x of left top corner in virtual space
-    @param vy   (number) y of left top corner in virtual space
-    @param vw   (number) width of a bounding box in virtual space
-    @param vh   (number) height of a bounding box in virtual space
-    @param z    (number) z-index
-    @param imgSrc (string) image URI
-    @param onload (optional callback function) called when image is loaded
-    @param parent (CanvasElement) Parent element, whose children is to be new element.
-    */
-    this.addImage = function (element, layerid, id, vx, vy, vw, vh, imgSrc, onload) {
-      if (vw <= 0 || vh <= 0)
-        throw "Image size must be positive";
-      return this.addChild(element, new CanvasImage(element.vc, layerid, id, imgSrc, vx, vy, vw, vh, onload), false);
-    };
-
-    /* Adds a video as a child of the given virtual canvas element.
-    @param element   (CanvasElement) Parent element, whose children is to be new element.
-    @param layerid   (any type) id of the layer for this element
-    @param id   (any type) id of an element
-    @param videoSource (string) video URI
-    @param vx   (number) x of left top corner in virtual space
-    @param vy   (number) y of left top corner in virtual space
-    @param vw   (number) width of a bounding box in virtual space
-    @param vh   (number) height of a bounding box in virtual space
-    @param z (number) z-index
-    */
-    this.addVideo = function (element, layerid, id, videoSource, vx, vy, vw, vh, z) {
-      return this.addChild(element, new CanvasVideoItem(element.vc, layerid, id, videoSource, vx, vy, vw, vh, z), false);
-    };
-
     /* Adds a pdf as a child of the given virtual canvas element.
     @param element   (CanvasElement) Parent element, whose children is to be new element.
     @param layerid   (any type) id of the layer for this element
@@ -415,21 +418,6 @@ export class VCContent {
     */
     this.addPdf = function (element, layerid, id, pdfSource, vx, vy, vw, vh, z) {
       return this.addChild(element, new CanvasPdfItem(element.vc, layerid, id, pdfSource, vx, vy, vw, vh, z), false);
-    };
-
-    /* Adds an audio as a child of the given virtual canvas element.
-    @param element   (CanvasElement) Parent element, whose children is to be new element.
-    @param layerid   (any type) id of the layer for this element
-    @param id   (any type) id of an element
-    @param audioSource (string) audio URI
-    @param vx   (number) x of left top corner in virtual space
-    @param vy   (number) y of left top corner in virtual space
-    @param vw   (number) width of a bounding box in virtual space
-    @param vh   (number) height of a bounding box in virtual space
-    @param z (number) z-index
-    */
-    this.addAudio = function (element, layerid, id, audioSource, vx, vy, vw, vh, z) {
-      return this.addChild(element, new CanvasAudioItem(element.vc, layerid, id, audioSource, vx, vy, vw, vh, z), false);
     };
 
     /*  Adds a multiline text element as a child of the given virtual canvas element.
@@ -1363,11 +1351,12 @@ class CanvasImage extends CanvasElement {
     super(vc, layerid, id, vx, vy, vw, vh);
 
     this.onload = onload;
+    this.isLoading = true;
 
-    this.isLoading = true; // I am async
-    var img = new Image();
+    const img = new Image();
     this.img = img;
     this.img.isLoaded = false;
+
     var onCanvasImageLoad = function (s) {
       img['isLoading'] = false;
       if (!img['isRemoved']) {
@@ -1391,9 +1380,8 @@ class CanvasImage extends CanvasElement {
         }
 
         img['isLoaded'] = true;
-        if (this.onLoad)
-          this.onLoad();
-        this.vc.requestInvalidate();
+        if (this.onLoad) this.onLoad();
+        vc.requestInvalidate();
       } else {
         delete img['isRemoved'];
         delete img['isLoaded'];
@@ -1412,7 +1400,7 @@ class CanvasImage extends CanvasElement {
     if (onload)
       this.img.addEventListener("load", onload, false);
     this.img.addEventListener("error", onCanvasImageLoadError, false);
-    //this.img.src = imageSource; // todo: stop image loading if it is not needed anymore (see http://stackoverflow.com/questions/1339901/stop-loading-of-images-with-javascript-lazyload)
+    this.img.src = imageSource;
 
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
       if (!this.img.isLoaded)
@@ -1853,15 +1841,15 @@ class ContentItem extends CanvasDynamicLOD {
         const mediaType = this.contentItem.toLowerCase();
 
         if (mediaType === 'image' || mediaType === 'picture') {
-          VCContent.addImage(container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, uri);
+          addImage(container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, uri);
         } else if (mediaType === 'video') {
-          VCContent.addVideo(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
+          addVideo(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
         } else if (mediaType === 'audio') {
           mediaTop += constants.contentItemAudioTopMargin * vh;
           mediaHeight = vh * constants.contentItemAudioHeight;
           addAudio(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
         } else if (mediaType === 'pdf') {
-          VCContent.addPdf(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
+          addPdf(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
         }
 
         // Title
@@ -1932,7 +1920,7 @@ class ContentItem extends CanvasDynamicLOD {
           zl = constants.contentItemThumbnailMinLevel;
         }
         var sz = 1 << zl;
-        var thumbnailUri = constants.contentItemThumbnailBaseUri + 'x' + sz + '/' + contentItem.guid + '.png';
+        var thumbnailUri = contentItem.uri;
         return {
           zoomLevel: newZl,
           content: new CanvasImage(vc, layerid, id + "@" + 1, thumbnailUri, vx, vy, vw, vh)
@@ -2197,7 +2185,7 @@ class CanvasInfodot extends CanvasCircle {
         }
         var contentItem = contentItems[0];
         var sz = 1 << zl;
-        var thumbnailUri = constants.contentItemThumbnailBaseUri + 'x' + sz + '/' + contentItem.guid + '.png';
+        var thumbnailUri = contentItem.uri;
         var l = innerRad * 260 / 225;
         return {
           zoomLevel: zl,

@@ -2,7 +2,7 @@ export const data = {
   id: '00000000-0000-0000-0000-000000000000',
   start: -13800000000,
   end: 100000000,
-  title: 'Data',
+  title: '',
   regime: 'Cosmos',
   exhibits: [
     {
@@ -13,7 +13,28 @@ export const data = {
       title: 'The Big Bang',
     }, {
       isCirca: false,
-      contentItems: [],
+      contentItems: [
+        {
+          id: "e351d1a1-deb6-43c4-a78a-df59f895967b",
+          title: "Milky Way Galaxy",
+          description: "This is an artist's conception of the Milky Way galaxy, otherwise known as home to our Solar System. Its name originates from the appearance of a dim \"milky\" glowing band across the night sky, in which individual stars cannot be distinguished by the naked eye. This appearance results from the galaxy having a disk-shaped structure that is being viewed edge-on.",
+          attribution: "Artist Nick Risinger. Adapted from NASA images.",
+          mediaSource: "http://commons.wikimedia.org/wiki/File:Milky_Way_Galaxy.jpg",
+          mediaType: "picture",
+          url: "https://upload.wikimedia.org/wikipedia/commons/8/82/Milky_Way_Galaxy.jpg",
+          order: 1,
+        }, {
+          id: "92c2e8d4-b45c-48aa-bfe4-69548f754133",
+          guid: "92c2e8d4-b45c-48aa-bfe4-69548f754133",
+          title: "Threshold 2: Origins of The First Stars - Part 1",
+          description: "Part 1 examines the conditions that led up to the first stars lighting up. By two hundred million years after the Big Bang, the Universe had become a very dark and cold place. Suddenly 'hot spots' of light and energy appeared from the darkness. Where did they come from?",
+          attribution: "Big History Project",
+          mediaSource: "http://www.bighistoryproject.com",
+          mediaType: "Video",
+          uri: "http://player.vimeo.com/video/37942669",
+          order: 0,
+        }
+      ],
       id: 'c726a9c3-63ec-455c-ac5d-0f84643f09a6',
       time: -13200000000,
       title: 'The Birth of the Milky Way Galaxy',
