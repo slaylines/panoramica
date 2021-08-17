@@ -7,15 +7,28 @@ export const data = {
   exhibits: [],
   timelines: [
     {
-      id: '1',
+      id: 't1',
       start: -1300000000,
       end: -1030000000,
       title: 'T1: Средний рифей',
       regime: 'Earth',
-      exhibits: [],
+      exhibits: [
+        {
+          contentItems: [{
+            id: 'c1',
+            title: 'Дмитровская Каграманян. ВИКА №1 Средний рифей.',
+            description: '',
+            mediaType: 'pdf',
+            uri: 'https://disk.yandex.ru/i/EuOeSenkjR6tWg',
+          }],
+          id: 'e1',
+          time: -1165000000,
+          title: 'Карты',
+        },
+      ],
       timelines: [],
     }, {
-      id: '2',
+      id: 't2',
       start: -1030000000,
       end: -600000000,
       title: 'T2: Верхний рифей',
@@ -23,7 +36,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '3',
+      id: 't3',
       start: -600000000,
       end: -541000000,
       title: 'T3: Венд',
@@ -31,7 +44,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '4',
+      id: 't4',
       start: -541000000,
       end: -485000000,
       title: 'T4: Кембрий',
@@ -39,7 +52,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '5',
+      id: 't5',
       start: -485000000,
       end: -443800000,
       title: 'T5: Ордовик',
@@ -47,7 +60,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '6',
+      id: 't6',
       start: -443800000,
       end: -419000000,
       title: 'T6: Силур',
@@ -55,7 +68,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '7',
+      id: 't7',
       start: -419000000,
       end: -358900000,
       title: 'T7: Девон',
@@ -63,7 +76,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '8',
+      id: 't8',
       start: -358900000,
       end: -298900000,
       title: 'T8: Каменугольный',
@@ -71,7 +84,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '9',
+      id: 't9',
       start: -298900000,
       end: -251900000,
       title: 'T9: Пермь',
@@ -79,7 +92,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '10',
+      id: 't10',
       start: -251900000,
       end: -201000000,
       title: 'T10: Триас',
@@ -87,7 +100,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '11',
+      id: 't11',
       start: -201000000,
       end: -145000000,
       title: 'T11: Юра',
@@ -95,7 +108,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '12',
+      id: 't12',
       start: -145000000,
       end: -66000000,
       title: 'T12: Мел',
@@ -103,7 +116,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '13',
+      id: 't13',
       start: -66000000,
       end: -23000000,
       title: 'T13: Палеоген',
@@ -111,7 +124,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '14',
+      id: 't14',
       start: -23000000,
       end: -2580000,
       title: 'T14: Неоген',
@@ -119,7 +132,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '15',
+      id: 't15',
       start: -2580000,
       end: 0,
       title: 'T15: Антропоген',
@@ -127,7 +140,7 @@ export const data = {
       exhibits: [],
       timelines: [],
     }, {
-      id: '16',
+      id: 't16',
       start: 0,
       end: 10000,
       title: 'T16: Будущее',
@@ -181,7 +194,7 @@ export const data = {
           uri: "https://www.africau.edu/images/default/sample.pdf",
         },
       ],
-      id: 'c726a9c3-63ec-455c-ac5d-0f84643f09a6',
+      id: 't726a9c3-63ec-455c-ac5d-0f84643f09a6',
       time: -13200000000,
       title: 'The Birth of the Milky Way Galaxy',
     }, {

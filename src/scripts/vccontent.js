@@ -1570,13 +1570,13 @@ class CanvasPdfItem extends CanvasDomItem {
     if (!pdfSrc.match("/^" + pdfViewer + "/")) {
       pdfSrc = pdfViewer + pdfSrc;
     }
+
     if (pdfSrc.indexOf('?') == -1)
       pdfSrc += '?&embedded=true&wmode=opaque';
-
     else
       pdfSrc += '&embedded=true&wmode=opaque';
-    elem.setAttribute("src", pdfSrc);
 
+    elem.setAttribute("src", pdfSrc);
     elem.setAttribute("visible", 'true');
     elem.setAttribute("controls", 'true');
 
