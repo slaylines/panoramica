@@ -28,17 +28,35 @@ export const data = {
           id: 'e2',
           time: -1165000000,
           title: 'Общая характеристика',
-          contentItems: [],
+          contentItems: [{
+            id: 'c1',
+            title: 'HTML test',
+            description: '',
+            mediaType: 'text',
+            content: '<h1>Title</h1><ul><li>1</li><li>2</li></ul><a href="https://google.com">Google</a>',
+          }],
         }, {
           id: 'e3',
           time: -1165000000,
           title: 'Геология',
-          contentItems: [],
+          contentItems: [{
+            id: 'c1',
+            title: 'Long text test',
+            description: '',
+            mediaType: 'text',
+            content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur luctus enim id libero luctus, eu posuere turpis scelerisque. In ultrices maximus libero, ac cursus velit. Nullam et justo tristique, molestie mauris a, vestibulum justo. Curabitur nec accumsan orci. Aenean iaculis dolor in ipsum bibendum maximus. Curabitur ex odio, luctus at est id, ornare fringilla tortor. Suspendisse in bibendum sapien. Aenean luctus faucibus odio ut molestie.<br/><br/>Etiam ac elit nibh. Vestibulum at massa eros. Morbi vitae tincidunt tortor. In non justo vitae nisl placerat molestie quis a magna. Praesent tristique, dui vitae molestie tincidunt, odio nunc fermentum ligula, vel sodales libero ex in metus. Nunc accumsan nisi et elit rutrum, sit amet congue neque porttitor. Aenean nec vestibulum odio.',
+          }],
         }, {
           id: 'e4',
           time: -1165000000,
           title: 'Биология',
-          contentItems: [],
+          contentItems: [{
+            id: 'c1',
+            title: 'Youtube Video Test',
+            description: '',
+            mediaType: 'video',
+            uri: 'https://youtu.be/Qu59cLEA4HQ',
+          }],
         }
       ],
       timelines: [],
@@ -148,14 +166,14 @@ export const data = {
               title: 'Картинка моря ордовика.',
               description: '',
               mediaType: 'image',
-              uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T5P4_1.jpg'
+              uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T5P4.jpg'
             }, {
               id: 'c2',
               title: 'Ссылки по Органике Ордовика.',
               description: '',
               mediaType: 'pdf',
               uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T5P4_2.pdf'
-            }
+            },
           ],
         },
       ],
