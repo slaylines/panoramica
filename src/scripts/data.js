@@ -55,7 +55,8 @@ export const data = {
             title: 'Youtube Video Test',
             description: '',
             mediaType: 'video',
-            uri: 'https://youtu.be/Qu59cLEA4HQ',
+            uri: 'https://www.youtube.com/embed/24UIq3_pNHM',
+            thumbnail: 'https://img.youtube.com/vi/24UIq3_pNHM/mqdefault.jpg'
           }],
         }
       ],

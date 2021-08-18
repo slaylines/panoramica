@@ -1778,7 +1778,7 @@ class ContentItem extends CanvasDynamicLOD {
           zl = constants.contentItemThumbnailMinLevel;
         }
         var sz = 1 << zl;
-        var thumbnailUri = contentItem.uri;
+        var thumbnailUri = contentItem.thumbnail || contentItem.uri;
         return {
           zoomLevel: newZl,
           content: new CanvasImage(vc, layerid, id + "@" + 1, thumbnailUri, vx, vy, vw, vh)
