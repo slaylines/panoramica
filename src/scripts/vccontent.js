@@ -1425,22 +1425,21 @@ class CanvasDomItem extends CanvasElement {
       }
     };
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
-      if (!this.content)
-        return;
-      var p = viewport2d.pointVirtualToScreen(this.x, this.y);
+      if (!this.content) return;
 
-      // p.x = p.x + 8; p.y = p.y + 8; // todo: properly position relative to VC and remove this offset
+      const p = viewport2d.pointVirtualToScreen(this.x, this.y);
+
       //Define screen rectangle
-      var screenTop = 0;
-      var screenBottom = viewport2d.height;
-      var screenLeft = 0;
-      var screenRight = viewport2d.width;
+      const screenTop = 0;
+      const screenBottom = viewport2d.height;
+      const screenLeft = 0;
+      const screenRight = viewport2d.width;
 
-      //Define clip rectangle. By defautlt, video is not clipped. If video element crawls from screen rect, clip it
-      var clipRectTop = 0,
-        clipRectLeft = 0,
-        clipRectBottom = size_p.y,
-        clipRectRight = size_p.x;
+      //Define clip rectangle. By default, video is not clipped. If video element crawls from screen rect, clip it
+      let clipRectTop = 0;
+      let clipRectLeft = 0;
+      let clipRectBottom = size_p.y;
+      let clipRectRight = size_p.x;
 
       //Vertical intersection ([a1,a2] are screen top and bottom, [b1,b2] are iframe top and bottom)
       var a1 = screenTop;
@@ -1467,13 +1466,13 @@ class CanvasDomItem extends CanvasElement {
       }
 
       //Finally, reset iframe style.
-      this.content.style.left = p.x + 'px';
-      this.content.style.top = p.y + 'px';
-      this.content.style.width = size_p.x + 'px';
-      this.content.style.height = size_p.y + 'px';
-      this.content.style.clip = 'rect(' + clipRectTop + 'px,' + clipRectRight + 'px,' + clipRectBottom + 'px,' + clipRectLeft + 'px)';
+      this.content.style.left = `${p.x}px`;
+      this.content.style.top = `${p.y}px`;
+      this.content.style.width = `${size_p.x}px`;
+      this.content.style.height = `${size_p.y}px`;
+      this.content.style.clip = `rect(${clipRectTop}px,${clipRectRight}px,${clipRectBottom}px,${clipRectLeft}px)`;
       this.content.style.opacity = opacity;
-      this.content.style.filter = 'alpha(opacity=' + (opacity * 100) + ')';
+      this.content.style.filter = `alpha(opacity=${opacity * 100})`;
     };
 
     /* The functions is called when the canvas element is removed from the elements tree */
@@ -1639,8 +1638,12 @@ class ContentItem extends CanvasDynamicLOD {
 
     // Building content of the item
     var titleHeight = vh * constants.contentItemTopTitleHeight * 0.8;
-    var mediaHeight = vh * constants.contentItemMediaHeight;
-    var descrHeight = constants.contentItemFontHeight * vh;
+    var descrHeight = vh * constants.contentItemFontHeight;
+    var mediaHeight = contentItem.description
+      ? vh * constants.contentItemMediaHeight
+      : vh * constants.contentItemMediaHeightFull;
+
+    if (!contentItem.description) descrHeight = 0;
 
     var contentWidth = vw * constants.contentItemContentWidth;
     var leftOffset = (vw - contentWidth) / 2.0;
@@ -1692,7 +1695,7 @@ class ContentItem extends CanvasDynamicLOD {
         const container = new ContainerElement(vc, layerid, id + "__content", vx, vy, vw, vh);
 
         const mediaID = id + "__media__";
-        const { uri, title } = this.contentItem;
+        const { uri, title, content } = this.contentItem;
         const mediaType = this.contentItem.mediaType.toLowerCase();
 
         if (mediaType === 'image' || mediaType === 'picture') {
@@ -1701,6 +1704,8 @@ class ContentItem extends CanvasDynamicLOD {
           addVideo(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
         } else if (mediaType === 'pdf') {
           addPdf(container, layerid, mediaID, uri, vx + leftOffset, mediaTop, contentWidth, mediaHeight, constants.mediaContentElementZIndex);
+        } else if (mediaType === 'text') {
+          addScrollText(container, layerid, mediaID, vx + leftOffset, mediaTop, contentWidth, mediaHeight, content, constants.mediaContentElementZIndex);
         }
 
         // Title
@@ -1752,8 +1757,10 @@ class ContentItem extends CanvasDynamicLOD {
         }
 
         // Description
-        var descrTop = titleTop + titleHeight + verticalMargin;
-        var descr = addScrollText(container, layerid, id + "__description__", vx + leftOffset, descrTop, contentWidth, descrHeight, this.contentItem.description, 30, {});
+        if (this.contentItem.description) {
+          var descrTop = titleTop + titleHeight + verticalMargin;
+          var descr = addScrollText(container, layerid, id + "__description__", vx + leftOffset, descrTop, contentWidth, descrHeight, this.contentItem.description, 30, {});
+        }
 
         return {
           zoomLevel: constants.contentItemShowContentZoomLevel,

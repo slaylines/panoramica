@@ -65,6 +65,7 @@ export const contentItemTopTitleHeight = 47.0 / 540;
 export const contentItemContentWidth = 480.0 / 520;
 export const contentItemVerticalMargin = 13.0 / 540;
 export const contentItemMediaHeight = 260.0 / 540;
+export const contentItemMediaHeightFull = 450.0 / 540;
 export const contentItemSourceHeight = 10.0 / 540;
 export const contentItemSourceFontColor = 'rgb(232,232,232)';
 export const contentItemSourceHoveredFontColor = 'white';

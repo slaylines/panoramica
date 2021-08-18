@@ -14,17 +14,32 @@ export const data = {
       regime: 'Earth',
       exhibits: [
         {
+          id: 'e1',
+          time: -1165000000,
+          title: 'Карты',
           contentItems: [{
             id: 'c1',
             title: 'Дмитровская Каграманян. ВИКА №1 Средний рифей.',
             description: '',
             mediaType: 'pdf',
-            uri: 'https://disk.yandex.ru/i/EuOeSenkjR6tWg',
+            uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T1P1.pdf',
           }],
-          id: 'e1',
+        }, {
+          id: 'e2',
           time: -1165000000,
-          title: 'Карты',
-        },
+          title: 'Общая характеристика',
+          contentItems: [],
+        }, {
+          id: 'e3',
+          time: -1165000000,
+          title: 'Геология',
+          contentItems: [],
+        }, {
+          id: 'e4',
+          time: -1165000000,
+          title: 'Биология',
+          contentItems: [],
+        }
       ],
       timelines: [],
     }, {
@@ -33,7 +48,43 @@ export const data = {
       end: -600000000,
       title: 'T2: Верхний рифей',
       regime: 'Earth',
-      exhibits: [],
+      exhibits: [
+        {
+          id: 'e1',
+          time: -815000000,
+          title: 'Карты',
+          contentItems: [
+            {
+              id: 'c1',
+              title: 'Дмитровская Каграманян. ВИКА №1 Поздний рифей.',
+              description: '',
+              mediaType: 'pdf',
+              uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T2P1_1.pdf',
+            }, {
+              id: 'c2',
+              title: 'Расположение ВВ 750 Верх рифей.',
+              description: '',
+              mediaType: 'pdf',
+              uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T2P1_2.pdf',
+            },
+          ],
+        }, {
+          id: 'e2',
+          time: -815000000,
+          title: 'Общая характеристика',
+          contentItems: [],
+        }, {
+          id: 'e3',
+          time: -815000000,
+          title: 'Геология',
+          contentItems: [],
+        }, {
+          id: 'e4',
+          time: -815000000,
+          title: 'Биология',
+          contentItems: [],
+        }
+      ],
       timelines: [],
     }, {
       id: 't3',
@@ -57,7 +108,57 @@ export const data = {
       end: -443800000,
       title: 'T5: Ордовик',
       regime: 'Earth',
-      exhibits: [],
+      exhibits: [
+        {
+          id: 'e1',
+          time: -464400000,
+          title: 'Карты',
+          contentItems: [
+            {
+              id: 'c1',
+              title: 'Дмитровская Каграманян. ВИКА №1 Ордовик.',
+              description: '',
+              mediaType: 'pdf',
+              uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T5P1_1.pdf',
+            }, {
+              id: 'c2',
+              title: 'Расположение ВВ 470 Ордовик.',
+              description: '',
+              mediaType: 'pdf',
+              uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T5P1_2.pdf',
+            },
+          ]
+        }, {
+          id: 'e2',
+          time: -464400000,
+          title: 'Общая характеристика',
+          contentItems: [],
+        }, {
+          id: 'e3',
+          time: -464400000,
+          title: 'Геология',
+          contentItems: [],
+        }, {
+          id: 'e4',
+          time: -464400000,
+          title: 'Биология',
+          contentItems: [
+            {
+              id: 'c1',
+              title: 'Картинка моря ордовика.',
+              description: '',
+              mediaType: 'image',
+              uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T5P4_1.jpg'
+            }, {
+              id: 'c2',
+              title: 'Ссылки по Органике Ордовика.',
+              description: '',
+              mediaType: 'pdf',
+              uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T5P4_2.pdf'
+            }
+          ],
+        },
+      ],
       timelines: [],
     }, {
       id: 't6',
