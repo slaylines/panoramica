@@ -56,7 +56,7 @@ export const data = {
             description: '',
             mediaType: 'video',
             uri: 'https://www.youtube.com/embed/24UIq3_pNHM',
-            thumbnail: 'https://img.youtube.com/vi/24UIq3_pNHM/mqdefault.jpg'
+            thumbnail: 'http://img.youtube.com/vi/24UIq3_pNHM/mqdefault.jpg',
           }],
         }
       ],
