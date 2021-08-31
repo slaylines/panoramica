@@ -60,8 +60,10 @@ export default class Layout {
     }
 
     function LayoutTimeline(timeline, parentWidth, measureContext) {
-      var headerPercent = constants.timelineHeaderSize + 2 * constants.timelineHeaderMargin;
+      // Completely hide all the titles
+      var headerPercent = 0; // constants.timelineHeaderSize + 2 * constants.timelineHeaderMargin;
       var timelineWidth = timeline.right - timeline.left;
+
       timeline.width = timelineWidth;
 
       // Set content margin

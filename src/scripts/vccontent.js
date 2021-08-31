@@ -846,21 +846,6 @@ class CanvasTimeline extends CanvasRectangle {
     this.settings.showToCirca = this.toIsCirca;
     this.settings.showInfinite = (timelineinfo.endDate == 9999);
 
-    var width = timelineinfo.timeEnd - timelineinfo.timeStart;
-
-    var headerSize = timelineinfo.titleRect ? timelineinfo.titleRect.height : constants.timelineHeaderSize * timelineinfo.height;
-    var headerWidth = timelineinfo.titleRect ? timelineinfo.titleRect.width : 0;
-    var marginLeft = timelineinfo.titleRect ? timelineinfo.titleRect.marginLeft : constants.timelineHeaderMargin * timelineinfo.height;
-    var marginTop = timelineinfo.titleRect ? timelineinfo.titleRect.marginTop : (1 - constants.timelineHeaderMargin) * timelineinfo.height - headerSize;
-    var baseline = timelineinfo.top + marginTop + headerSize / 2.0;
-
-    this.titleObject = addText(this, layerid, id + '__header__', timelineinfo.timeStart + marginLeft, timelineinfo.top + marginTop, baseline, headerSize, timelineinfo.header, {
-      fontName: constants.timelineHeaderFontName,
-      fillStyle: constants.timelineHeaderFontColor,
-      textBaseline: 'middle'
-    }, headerWidth);
-
-    this.title = this.titleObject.text;
     this.regime = timelineinfo.regime;
     this.settings.gradientOpacity = 0;
 
@@ -881,61 +866,40 @@ class CanvasTimeline extends CanvasRectangle {
     };
 
     this.onmousehover = function (pv, e) {
-      //previous timeline also hovered and mouse leave don't appear, hide it
-      //if infodot is null or undefined, we should stop animation
-      //if it's ok, infodot's tooltip don't wink
-      if (this.vc.currentlyHoveredTimeline != null && this.vc.currentlyHoveredTimeline.id != id) {
-        try {
-          this.vc.currentlyHoveredInfodot.id;
-        } catch (ex) {
-          this.vc.hideTooltip();
-          this.vc.currentlyHoveredTimeline.tooltipIsShown = false;
-        }
+      // previous timeline also hovered and mouse leave don't appear, hide it
+      // if infodot is null or undefined, we should stop animation
+      // if it's ok, infodot's tooltip don't wink
+      if (this.vc.currentlyHoveredTimeline && this.vc.currentlyHoveredTimeline.id !== id) {
+        this.vc.hideTooltip();
+        this.vc.currentlyHoveredTimeline.tooltipIsShown = false;
+      } else if (!timelineinfo.header) {
+        this.vc.hideTooltip();
       }
 
-      //make currentTimeline to this
       this.vc.currentlyHoveredTimeline = this;
 
       this.settings.strokeStyle = constants.timelineHoveredBoxBorderColor;
       this.settings.lineWidth = constants.timelineHoveredLineWidth;
-      this.titleObject.settings.fillStyle = constants.timelineHoveredHeaderFontColor;
       this.settings.hoverAnimationDelta = constants.timelineHoverAnimation;
       this.vc.requestInvalidate();
-
-      //if title is not in visible region, try to eval its screenFontSize using
-      //formula based on height of its parent timeline
-      if (this.titleObject.initialized == false) {
-        const vp = this.vc.getViewport();
-        this.titleObject.screenFontSize = constants.timelineHeaderSize * vp.heightVirtualToScreen(this.height);
-      }
-
-      //if timeline title is small, show tooltip
-      this.tooltipEnabled = this.titleObject.screenFontSize <= constants.timelineTooltipMaxHeaderSize;
 
       if (this.vc.tooltipMode !== 'infodot') {
         this.vc.tooltipMode = 'timeline';
 
-        if (!this.tooltipEnabled) {
-          this.vc.hideTooltip();
-          this.tooltipIsShown = false;
-          return;
-        }
-
-        // show tooltip if it is enabled and is not shown yet
-        if (!this.tooltipIsShown) {
+        if (!this.tooltipIsShown && timelineinfo.header) {
           const tooltip = $('.vc-tooltip');
 
-          tooltip.find('span').text(this.title);
+          tooltip.find('span').text(timelineinfo.header);
           tooltip.addClass('visible');
 
-          this.panelWidth = tooltip.outerWidth(); // complete width of tooltip panel
-          this.panelHeight = tooltip.outerHeight(); // complete height of tooltip panel
+          this.panelWidth = tooltip.outerWidth();
+          this.panelHeight = tooltip.outerHeight();
           this.tooltipIsShown = true;
         }
       }
     };
     this.onmouseunhover = function (pv, e) {
-      if (this.vc.currentlyHoveredTimeline != null && this.vc.currentlyHoveredTimeline.id == id) {
+      if (this.vc.currentlyHoveredTimeline) {
         this.vc.currentlyHoveredTimeline = null;
 
         if (this.tooltipIsShown && this.vc.tooltipMode === 'timeline') {
@@ -947,7 +911,6 @@ class CanvasTimeline extends CanvasRectangle {
 
       this.settings.strokeStyle = timelineinfo.strokeStyle ? timelineinfo.strokeStyle : constants.timelineBorderColor;
       this.settings.lineWidth = constants.timelineLineWidth;
-      this.titleObject.settings.fillStyle = constants.timelineHeaderFontColor;
       this.settings.hoverAnimationDelta = -constants.timelineHoverAnimation;;
       this.vc.requestInvalidate();
     };
@@ -962,8 +925,6 @@ class CanvasTimeline extends CanvasRectangle {
     @remarks The method is implemented for each particular VirtualCanvas element.
     */
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
-      this.titleObject.initialized = false;
-
       if (this.settings.hoverAnimationDelta) {
         this.settings.gradientOpacity = Math.min(1, Math.max(0, this.settings.gradientOpacity + this.settings.hoverAnimationDelta));
       }
