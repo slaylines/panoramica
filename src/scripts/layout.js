@@ -707,6 +707,7 @@ export default class Layout {
           aspectRatio: timeline.aspectRatio,
           offsetY: timeline.offsetY,
           initHeight: timeline.initHeight,
+          hideBorder: timeline.hideBorder,
         }
       );
 

@@ -879,7 +879,7 @@ class CanvasTimeline extends CanvasRectangle {
     this.onmouseclick = event => {
       return zoomToElementHandler(this, event, 1.0);
     };
-    
+
     this.onmousehover = function (pv, e) {
       //previous timeline also hovered and mouse leave don't appear, hide it
       //if infodot is null or undefined, we should stop animation
@@ -968,7 +968,9 @@ class CanvasTimeline extends CanvasRectangle {
         this.settings.gradientOpacity = Math.min(1, Math.max(0, this.settings.gradientOpacity + this.settings.hoverAnimationDelta));
       }
 
-      this.base_render(ctx, visibleBox, viewport2d, size_p, opacity);
+      if (!timelineinfo.hideBorder) {
+        this.base_render(ctx, visibleBox, viewport2d, size_p, opacity);
+      }
 
       if (this.settings.hoverAnimationDelta) {
         if (this.settings.gradientOpacity == 0 || this.settings.gradientOpacity == 1)
