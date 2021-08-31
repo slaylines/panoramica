@@ -85,4 +85,7 @@ $(document).ready(() => {
     updateAxis();
   });
 
+  $vc.bind('elementclick', e => {
+    controller.moveToVisible(e.newvisible);
+  });
 });

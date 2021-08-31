@@ -7,7 +7,7 @@ import {
   zoomSpeedFactor,
 } from './constants';
 import { Viewport2d, VisibleRegion2d } from './viewport';
-import { PanZoomAnimation } from './viewport-animation';
+import { PanZoomAnimation, EllipticalZoom } from './viewport-animation';
 
 //constructs the new instance of the viewportController that handles an animations of the viewport
 //@param setVisible (void setVisible(visible))      a callback which is called when controller wants to set intermediate visible regions while animation.
@@ -336,7 +336,7 @@ export default class ViewportController {
       this.updateRecentViewport();
 
       this.estimatedViewport = null;
-      this.activeAnimation = new CZ.ViewportAnimation.EllipticalZoom(this.recentViewport.visible, visible);
+      this.activeAnimation = new EllipticalZoom(this.recentViewport.visible, visible);
 
       this.viewportWidth = this.recentViewport.width;
       this.viewportHeight = this.recentViewport.height;

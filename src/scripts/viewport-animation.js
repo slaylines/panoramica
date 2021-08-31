@@ -1,7 +1,5 @@
 import { Viewport2d, VisibleRegion2d } from './viewport';
-import {
-  ellipticalZoomDuration,ellipticalZoomZoomoutFactor,
-} from './constants';
+import { ellipticalZoomDuration, ellipticalZoomZoomoutFactor } from './constants';
 
 /*
   the animation of zooming and panning where the animation speed is proportinal to the "distance" to target visible region
