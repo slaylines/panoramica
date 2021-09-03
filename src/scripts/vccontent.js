@@ -87,18 +87,6 @@ const turnIsRenderedOff = (element) => {
   }
 };
 
-const zoomToElementHandler = (sender, e, scale /* n [time units] / m [pixels] */ ) => {
-  const elementclick = $.Event('elementclick');
-  const vp = sender.vc.getViewport()
-  const visible = getVisibleForElement(sender, scale, vp, true);
-
-  elementclick.newvisible = visible;
-  elementclick.element = sender;
-  sender.vc.element.trigger(elementclick);
-
-  return true;
-};
-
 const getVisibleForElement = (element, scale, viewport, useMargin) => {
   var margin = 2 * (constants.contentScaleMargin && useMargin ? constants.contentScaleMargin : 0);
   var width = viewport.width - margin;
@@ -271,6 +259,19 @@ const arrangeContentItemsInField = (n, dx) => {
     return [x1];
   }
 }
+
+export const zoomToElementHandler = (sender, scale /* n [time units] / m [pixels] */, noAnimation) => {
+  const elementclick = $.Event('elementclick');
+  const vp = sender.vc.getViewport()
+  const visible = getVisibleForElement(sender, scale, vp, true);
+
+  elementclick.newvisible = visible;
+  elementclick.element = sender;
+  elementclick.noAnimation = noAnimation;
+  sender.vc.element.trigger(elementclick);
+
+  return true;
+};
 
 /*
   Adds a timeline composite element into a virtual canvas.
@@ -861,8 +862,8 @@ class CanvasTimeline extends CanvasRectangle {
     this.tooltipEnabled = true;
     this.tooltipIsShown = false;
 
-    this.onmouseclick = event => {
-      return zoomToElementHandler(this, event, 1.0);
+    this.onmouseclick = () => {
+      return zoomToElementHandler(this, 1.0);
     };
 
     this.onmousehover = function (pv, e) {
@@ -1641,8 +1642,8 @@ class ContentItem extends CanvasDynamicLOD {
       this.vc.requestInvalidate();
     };
 
-    this.onmouseclick = function (e) {
-      return zoomToElementHandler(this, e, 1.0);
+    this.onmouseclick = function () {
+      return zoomToElementHandler(this, 1.0);
     };
 
     this.changeZoomLevel = function (curZl, newZl) {
@@ -1816,8 +1817,8 @@ class CanvasInfodot extends CanvasCircle {
       this.vc.requestInvalidate();
     };
 
-    this.onmouseclick = function (e) {
-      return zoomToElementHandler(this, e, 1.0);
+    this.onmouseclick = function () {
+      return zoomToElementHandler(this, 1.0);
     };
 
     this.onmouseenter = function (e) {
@@ -1870,8 +1871,8 @@ class CanvasInfodot extends CanvasCircle {
       this.vc.raiseCursorChanged();
     };
 
-    this.onmouseclick = function (e) {
-      return zoomToElementHandler(this, e, 1.0);
+    this.onmouseclick = function () {
+      return zoomToElementHandler(this, 1.0);
     };
 
     // Building dynamic LOD content

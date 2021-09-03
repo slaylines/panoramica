@@ -1,7 +1,7 @@
 export const data = {
   id: '0',
-  start: -1310000000,
-  end: 10015000,
+  start: -1300000000,
+  end: 100000,
   title: '',
   regime: 'Cosmos',
   hideBorder: true,
@@ -255,19 +255,30 @@ export const data = {
     }, {
       id: 't15',
       start: -2580000,
-      end: 0,
-      title: 'T15: Антропоген',
+      end: 100000,
+      title: '',
       regime: 'Earth',
+      hideBorder: true,
       exhibits: [],
-      timelines: [],
-    }, {
-      id: 't16',
-      start: 0,
-      end: 10000,
-      title: 'T16: Будущее',
-      regime: 'Earth',
-      exhibits: [],
-      timelines: [],
-    }
+      timelines: [
+        {
+          id: 't15_1',
+          start: -2580000,
+          end: 0,
+          title: 'T15: Антропоген',
+          regime: 'Earth',
+          exhibits: [],
+          timelines: [],
+        }, {
+          id: 't15_2',
+          start: 0,
+          end: 100000,
+          title: 'T16: Будущее',
+          regime: 'Earth',
+          exhibits: [],
+          timelines: [],
+        }
+      ],
+    },
   ],
 };

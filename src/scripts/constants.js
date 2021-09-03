@@ -34,7 +34,6 @@ export const timelineBorderColor = 'rgb(232,232,232)';
 export const timelineLineWidth = 1;
 export const timelineHoveredLineWidth = 1;
 export const timelineMinAspect = 0.2;
-export const timelineContentMargin = 0.01;
 export const timelineHoveredBoxBorderColor = 'rgb(232,232,232)';
 export const timelineBreadCrumbBorderOffset = 50;
 export const timelineCenterOffsetAcceptableImplicity = 0.00001;

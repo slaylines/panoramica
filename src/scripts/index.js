@@ -10,6 +10,7 @@ import Gestures from './gestures';
 import ViewportController from './viewport-controller';
 import Layout from './layout';
 import { VisibleRegion2d, Viewport2d } from './viewport';
+import { zoomToElementHandler } from './vccontent';
 
 $(document).ready(() => {
   // Used in viewport-animation.js
@@ -26,6 +27,8 @@ $(document).ready(() => {
   $vc.virtualCanvas();
   $vc.virtualCanvas('setLayout', layout);
 
+  const viewport = new Viewport2d(1, $vc[0].clientWidth, $vc[0].clientHeight, new VisibleRegion2d(0, 0, 1));
+
   const loadData = () => {
     const root = $vc.virtualCanvas('getLayerContent');
 
@@ -38,9 +41,6 @@ $(document).ready(() => {
       bottom: data.y + data.height
     }
   }
-
-  const visibleRegion = new VisibleRegion2d(-655000000, 95900000, 1180000);
-  const viewport = new Viewport2d(1, $vc[0].clientWidth, $vc[0].clientHeight, visibleRegion);
 
   const updateAxis = (initial) => {
     const lt = viewport.pointScreenToVirtual(0, 0);
@@ -86,6 +86,16 @@ $(document).ready(() => {
   });
 
   $vc.bind('elementclick', e => {
-    controller.moveToVisible(e.newvisible);
+    controller.moveToVisible(e.newvisible, e.noAnimation);
   });
+
+  $('.link.nature-link').on('click', () => {
+    zoomToElementHandler(data.element, 1.0);
+  });
+
+  $('.link.socium-link').on('click', () => {
+    zoomToElementHandler(data.timelines[data.timelines.length - 1].element, 1.0);
+  });
+
+  zoomToElementHandler(data.element, 1.0, true);
 });

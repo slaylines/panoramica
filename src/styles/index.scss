@@ -20,42 +20,36 @@ html, body {
 main {
   position: relative;
   width: 100%;
-  height: calc(100% - 2.5em);
+  height: calc(100% - 3em);
   background: #333;
 }
 
 header {
   display: flex;
   align-items: center;
-  padding: 0 1em;
-  height: 2.5em;
+  padding: 0.25em 1em;
+  height: 3em;
 
-  h1 {
-    margin: 0;
-    font-size: 1.4em;
+  img {
+    height: 100%;
+    margin-right: 2em;
+    object-fit: contain;
   }
 
-  .github-link {
-    display: flex;
-    align-items: center;
-    font-size: 0.85em;
-    margin-left: auto;
-
-    a {
-      border-bottom: 0;
-    }
-
-    img {
-      width: 2.2em;
-      object-fit: contain;
-    }
+  div {
+    margin-right: 1em;
+    cursor: pointer;
   }
 }
 
-a {
+a, .link {
   text-decoration: none;
   color: #2d84da;
-  border-bottom: 1px solid rgba(45, 132, 218, 0.6);
+  border-bottom: 1px solid rgba(45, 132, 218, 0.5);
+
+  &:hover {
+    border-bottom-color: rgba(45, 132, 218, 0.85);
+  }
 }
 
 .unselectable {

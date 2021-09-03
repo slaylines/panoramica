@@ -59,7 +59,7 @@ export default class Layout {
       timeline.AspectRatio = timeline.aspectRatio || 10;
     }
 
-    function LayoutTimeline(timeline, parentWidth, measureContext) {
+    function LayoutTimeline(timeline, measureContext) {
       // Completely hide all the titles
       var headerPercent = 0; // constants.timelineHeaderSize + 2 * constants.timelineHeaderMargin;
       var timelineWidth = timeline.right - timeline.left;
@@ -67,7 +67,7 @@ export default class Layout {
       timeline.width = timelineWidth;
 
       // Set content margin
-      timeline.heightEps = parentWidth * constants.timelineContentMargin;
+      timeline.heightEps = 0;
 
       // If child timeline has fixed aspect ratio, calculate its height according to it
       if (timeline.AspectRatio && !timeline.height) {
@@ -91,7 +91,7 @@ export default class Layout {
           }
 
           // Calculate layout for each child timeline
-          LayoutTimeline(tl, timelineWidth, measureContext);
+          LayoutTimeline(tl, measureContext);
         });
       }
 
@@ -713,6 +713,8 @@ export default class Layout {
         }
       );
 
+      timeline.element = t1;
+
       //Creating Infodots
       if (timeline.exhibits instanceof Array) {
         timeline.exhibits.forEach(function (childInfodot) {
@@ -796,7 +798,7 @@ export default class Layout {
 
         const measureContext = document.createElement('canvas').getContext('2d');
 
-        LayoutTimeline(timeline, 0, measureContext);
+        LayoutTimeline(timeline, measureContext);
         Arrange(timeline, measureContext);
 
         LoadTimeline(root, timeline);
