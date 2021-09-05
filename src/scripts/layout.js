@@ -129,6 +129,11 @@ export default class Layout {
         }
       }
 
+      // NOTE: hack to make all timelines the same height (magic number)
+      if (timeline.level === 1) {
+        timeline.height = 60000000;
+      }
+
       // Now positioning child content and title
       let exhibitSize = CalcInfodotSize(timeline);
 
@@ -654,7 +659,8 @@ export default class Layout {
     }
 
     function CalcInfodotSize(timeline) {
-      return (timeline.right - timeline.left) / 20.0;
+      return Math.min(timeline.height, timeline.width) * 0.85;
+      // return (timeline.right - timeline.left) / 20.0;
     }
 
     function GenerateTitleObject(tlHeight, timeline, measureContext) {
@@ -757,15 +763,9 @@ export default class Layout {
 
     function GetTimelineColor(timeline) {
       if (timeline.regime == 'Cosmos') {
-        return 'rgba(152, 108, 157, 1.0)';
+        return '#c7c0f3';
       } else if (timeline.regime == 'Earth') {
-        return 'rgba(81, 127, 149, 1.0)';
-      } else if (timeline.regime == 'Life') {
-        return 'rgba(73, 150, 73, 1.0)';
-      } else if (timeline.regime == 'Pre-history') {
-        return 'rgba(237, 145, 50, 1.0)';
-      } else if (timeline.regime == 'Humanity') {
-        return 'rgba(212, 92, 70, 1.0)';
+        return '#c0c7a9';
       } else {
         // Return null to allow the settings configuration to choose color.
         return null;
