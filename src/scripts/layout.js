@@ -604,7 +604,10 @@ export default class Layout {
 
       if (timeline.exhibits instanceof Array) {
         timeline.exhibits.forEach(function (infodot) {
-          infodot.y = infodot.realY + infodot.size / 2.0 + timeline.y;
+          // Инфодот центрирован по вертикали относительно таймлинии
+          // TODO: не будет работать, если будет несколько инфодотов для одного момента времени
+          infodot.y = timeline.y + timeline.height / 2;
+          // infodot.y = infodot.realY + infodot.size / 2.0 + timeline.y;
         });
       }
 
@@ -696,6 +699,7 @@ export default class Layout {
         'layerTimelines',
         't' + timeline.id,
         {
+          color: tlColor,
           isBuffered: timeline.timelines instanceof Array,
           guid: timeline.id,
           timeStart: timeline.left,
@@ -703,9 +707,9 @@ export default class Layout {
           top: timeline.y,
           height: timeline.height,
           header: timeline.title,
-          fillStyle: 'rgba(0,0,0,0.25)',
+          fillStyle: '#fff',
           titleRect: timeline.titleRect,
-          strokeStyle: tlColor,
+          strokeStyle: '#333',
           regime: timeline.regime,
           endDate: timeline.endDate,
           fromIsCirca: timeline.fromIsCirca || false,

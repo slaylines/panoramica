@@ -727,6 +727,7 @@ class CanvasRectangle extends CanvasElement {
       var top = Math.max(0, p.y);
       var right = Math.min(viewport2d.width, p2.x);
       var bottom = Math.min(viewport2d.height, p2.y);
+
       if (left < right && top < bottom) {
         if (this.settings.fillStyle) {
           ctx.globalAlpha = this.settings.gradientOpacity ? opacity * (1 - this.settings.gradientOpacity) : opacity;
@@ -735,9 +736,9 @@ class CanvasRectangle extends CanvasElement {
 
           if (this.settings.gradientOpacity && this.settings.gradientFillStyle) {
             var lineargradient = ctx.createLinearGradient(left, bottom, right, top);
-            var transparent = "rgba(0, 0, 0, 0)";
+
             lineargradient.addColorStop(0, this.settings.gradientFillStyle);
-            lineargradient.addColorStop(1, transparent);
+            lineargradient.addColorStop(1, "#fff");
 
             ctx.globalAlpha = opacity * this.settings.gradientOpacity;
             ctx.fillStyle = lineargradient;
@@ -854,7 +855,7 @@ class CanvasTimeline extends CanvasRectangle {
       this.settings.gradientFillStyle = constants.timelineGradientFillStyle;
     } else {
       this.settings.gradientFillStyle = timelineinfo.gradientFillStyle || timelineinfo.strokeStyle
-        ? timelineinfo.strokeStyle
+        ? timelineinfo.color
         : constants.timelineBorderColor;
     }
 
@@ -879,7 +880,7 @@ class CanvasTimeline extends CanvasRectangle {
 
       this.vc.currentlyHoveredTimeline = this;
 
-      this.settings.strokeStyle = constants.timelineHoveredBoxBorderColor;
+      this.settings.strokeStyle = timelineinfo.strokeStyle;
       this.settings.lineWidth = constants.timelineHoveredLineWidth;
       this.settings.hoverAnimationDelta = constants.timelineHoverAnimation;
       this.vc.requestInvalidate();

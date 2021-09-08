@@ -80,14 +80,29 @@ export default class Axis {
     this.container[0].appendChild(marker[0]);
 
     this.canvasSize = constants.tickLength + constants.timescaleThickness;
-    this.canvas[0].height = this.canvasSize;
+
+    if (this.isHorizontal) {
+      this.canvas[0].style.height = `${this.canvasSize}px`;
+    } else {
+      this.canvas[0].style.width = `${this.canvasSize}px`;
+    }
 
     this.textSize = -1;
     this.fontSize = 45;
 
     this.strokeStyle = this.container ? this.container.css('color') : 'black';
 
+    // CTX увеличивается в 2 раза, чтобы избежать размытия линий
+    // Размер канваса равен контейнеру, размер ctx в 2 раза больше
+    // Все параметры всех элементов умножаются на 2
     this.ctx = this.canvas[0].getContext('2d');
+    this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+    if (this.isHorizontal) {
+      this.ctx.canvas.height = this.canvasSize * window.devicePixelRatio;
+    } else {
+      this.ctx.canvas.width = this.canvasSize * window.devicePixelRatio;
+    }
 
     if (this.container.currentStyle) {
       this.fontSize = this.container.currentStyle['font-size'];
@@ -196,13 +211,15 @@ export default class Axis {
     if (this.isHorizontal) {
       this.size = this.width;
       if (this.size !== prevSize) {
-        this.canvas[0].width = this.size;
+        this.canvas[0].style.width = `${this.size}px`;
+        this.ctx.canvas.width = this.size * window.devicePixelRatio;
         this.labelsDiv.css('width', this.size);
       }
     } else {
       this.size = this.height;
       if (this.size !== prevSize) {
-        this.canvas[0].height = this.size;
+        this.canvas[0].style.height = `${this.size}px`;
+        this.ctx.canvas.height = this.size * window.devicePixelRatio;
         this.labelsDiv.css('height', this.size);
       }
     }
@@ -218,7 +235,8 @@ export default class Axis {
         : 0;
 
       if (this.textSize !== 0) {
-        this.canvas[0].height = this.canvasSize;
+        this.canvas[0].style.height = `${this.canvasSize}px`;
+        this.ctx.canvas.height = this.canvasSize * window.devicePixelRatio;
       }
     } else {
       this.textSize = (this.ticksInfo[0] && this.ticksInfo[0].width !== this.textSize)
@@ -226,7 +244,8 @@ export default class Axis {
         : 0;
 
       if (this.textSize !== 0) {
-        this.canvas[0].width = this.canvasSize;
+        this.canvas[0].style.width = `${this.canvasSize}px`;
+        this.ctx.canvas.width = this.canvasSize * window.devicePixelRatio;
         this.width = this.textSize + this.canvasSize;
 
         this.container.css('width', this.width);
@@ -398,13 +417,13 @@ export default class Axis {
   */
   renderBaseLine() {
     if (this.position === 'bottom') {
-      this.ctx.fillRect(0, 0, this.size, constants.timescaleThickness);
+      this.ctx.fillRect(0, 0, this.size * 2, constants.timescaleThickness * 2);
     } else if (this.position === 'top') {
-      this.ctx.fillRect(0, constants.tickLength, this.size, constants.timescaleThickness);
+      this.ctx.fillRect(0, constants.tickLength * 2, this.size * 2, constants.timescaleThickness * 2);
     } else if (this.position === 'right') {
-      this.ctx.fillRect(0, 0, constants.timescaleThickness, this.size);
+      this.ctx.fillRect(0, 0, constants.timescaleThickness * 2, this.size * 2);
     } else if (this.position === 'left') {
-      this.ctx.fillRect(constants.tickLength, 0, constants.timescaleThickness, this.size);
+      this.ctx.fillRect(constants.tickLength * 2, 0, constants.timescaleThickness * 2, this.size * 2);
     }
   }
 
@@ -427,8 +446,8 @@ export default class Axis {
           shift *= 2;
         }
 
-        this.ctx.moveTo(position, 1);
-        this.ctx.lineTo(position, 1 + constants.tickLength);
+        this.ctx.moveTo(position * 2, 2);
+        this.ctx.lineTo(position * 2, (1 + constants.tickLength) * 2);
 
         if (this.ticks[i].label) {
           this.ticks[i].label.css('left', position - shift);
@@ -443,8 +462,8 @@ export default class Axis {
           shift = 0;
         }
 
-        this.ctx.moveTo(1, position);
-        this.ctx.lineTo(1 + constants.tickLength, position);
+        this.ctx.moveTo(2, position * 2);
+        this.ctx.lineTo((1 + constants.tickLength) * 2, position * 2);
 
         if (this.ticks[i].label) {
           this.ticks[i].label.css('top', position - shift);
@@ -492,29 +511,29 @@ export default class Axis {
           case 'bottom':
             for (i = 0; i < length; i++) {
               coord = this.getCoordinateFromTick(smallTicks[i]);
-              this.ctx.moveTo(coord, 1);
-              this.ctx.lineTo(coord, 1 + constants.smallTickLength);
+              this.ctx.moveTo(coord * 2, 2);
+              this.ctx.lineTo(coord * 2, (1 + constants.smallTickLength) * 2);
             }
             break;
           case 'top':
             for (i = 0; i < length; i++) {
               coord = this.getCoordinateFromTick(smallTicks[i]);
-              this.ctx.moveTo(coord, constants.tickLength - constants.smallTickLength);
-              this.ctx.lineTo(coord, 1 + constants.tickLength);
+              this.ctx.moveTo(coord * 2, (constants.tickLength - constants.smallTickLength) * 2);
+              this.ctx.lineTo(coord * 2, (1 + constants.tickLength) * 2);
             }
             break;
           case 'left':
             for (i = 0; i < length; i++) {
               coord = this.getCoordinateFromTick(smallTicks[i]);
-              this.ctx.moveTo(constants.tickLength - constants.smallTickLength, this.size - coord - 1);
-              this.ctx.lineTo(constants.tickLength, this.size - coord - 1);
+              this.ctx.moveTo((constants.tickLength - constants.smallTickLength) * 2, (this.size - coord - 1) * 2);
+              this.ctx.lineTo(constants.tickLength * 2, (this.size - coord - 1) * 2);
             }
             break;
           case 'right':
             for (i = 0; i < length; i++) {
               coord = this.getCoordinateFromTick(smallTicks[i]);
-              this.ctx.moveTo(1, this.size - coord - 1);
-              this.ctx.lineTo(1 + constants.smallTickLength, this.size - coord - 1);
+              this.ctx.moveTo(2, (this.size - coord - 1) * 2);
+              this.ctx.lineTo((1 + constants.smallTickLength * 2), (this.size - coord - 1) * 2);
             }
             break;
         }
@@ -551,7 +570,7 @@ export default class Axis {
     // Setup canvas context before rendering.
     this.ctx.strokeStyle = this.strokeStyle;
     this.ctx.fillStyle = this.strokeStyle;
-    this.ctx.lineWidth = constants.timescaleThickness;
+    this.ctx.lineWidth = constants.timescaleThickness * 2;
 
     if (this.isHorizontal) {
       this.ctx.clearRect(0, 0, this.size, this.canvasSize);
