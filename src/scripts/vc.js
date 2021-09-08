@@ -80,6 +80,9 @@ export default function VirtualCanvas() {
           .addClass('vc-layer-canvas')
           .css('z-index', index * 3 + 1);
 
+        const ctx = layerCanvasJq[0].getContext('2d');
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
         this.layers.push($div);
       });
 
@@ -397,8 +400,16 @@ export default function VirtualCanvas() {
         const canvas = layer.children('.vc-layer-canvas').first()[0];
 
         if (canvas) {
-          canvas.width = width;
-          canvas.height = height;
+          // CTX увеличивается в 2 раза, чтобы избежать размытия линий
+          // Размер канваса равен контейнеру, размер ctx в 2 раза больше
+          // Все параметры всех элементов умножаются на 2
+          canvas.style.width = `${width}px`;
+          canvas.style.height = `${height}px`;
+
+          const ctx = canvas.getContext('2d');
+
+          ctx.canvas.width = width * window.devicePixelRatio;
+          ctx.canvas.height = height * window.devicePixelRatio;
         }
       });
 
@@ -444,7 +455,7 @@ export default function VirtualCanvas() {
         const canvas = layer.children('.vc-layer-canvas').first()[0];
         const ctx = canvas.getContext('2d');
 
-        ctx.clearRect(0, 0, viewport.width, viewport.height);
+        ctx.clearRect(0, 0, viewport.width * 2, viewport.height * 2);
         res[layer[0].id] = ctx;
 
         return res;

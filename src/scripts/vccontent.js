@@ -723,10 +723,10 @@ class CanvasRectangle extends CanvasElement {
       var p = viewport2d.pointVirtualToScreen(this.x, this.y);
       var p2 = viewport2d.pointVirtualToScreen(this.x + this.width, this.y + this.height);
 
-      var left = Math.max(0, p.x);
-      var top = Math.max(0, p.y);
-      var right = Math.min(viewport2d.width, p2.x);
-      var bottom = Math.min(viewport2d.height, p2.y);
+      var left = Math.max(0, p.x * 2);
+      var top = Math.max(0, p.y * 2);
+      var right = Math.min(viewport2d.width * 2, p2.x * 2);
+      var bottom = Math.min(viewport2d.height * 2, p2.y * 2);
 
       if (left < right && top < bottom) {
         if (this.settings.fillStyle) {
@@ -751,46 +751,37 @@ class CanvasRectangle extends CanvasElement {
           ctx.strokeStyle = this.settings.strokeStyle;
           if (this.settings.lineWidth) {
             if (this.settings.isLineWidthVirtual) {
-              ctx.lineWidth = viewport2d.widthVirtualToScreen(this.settings.lineWidth);
+              ctx.lineWidth = viewport2d.widthVirtualToScreen(this.settings.lineWidth) * 2;
             } else {
-              ctx.lineWidth = this.settings.lineWidth; // in pixels
+              ctx.lineWidth = this.settings.lineWidth * 2; // in pixels
             }
           } else
-            ctx.lineWidth = 1;
-          var lineWidth2 = ctx.lineWidth / 2.0;
-          if (this.settings.outline) {
-            p.x += lineWidth2;
-            p.y += lineWidth2;
-            top += lineWidth2;
-            bottom -= lineWidth2;
-            left += lineWidth2;
-            right -= lineWidth2;
-            p2.x -= lineWidth2;
-            p2.y -= lineWidth2;
-          }
+            ctx.lineWidth = 2;
+
+          const lineWidth2 = ctx.lineWidth / 2.0;
 
           if (p.x > 0) {
             ctx.beginPath();
-            ctx.moveTo(p.x, top - lineWidth2);
-            ctx.lineTo(p.x, bottom + lineWidth2);
+            ctx.moveTo(p.x * 2, top - lineWidth2);
+            ctx.lineTo(p.x * 2, bottom + lineWidth2);
             ctx.stroke();
           }
           if (p.y > 0) {
             ctx.beginPath();
-            ctx.moveTo(left - lineWidth2, p.y);
-            ctx.lineTo(right + lineWidth2, p.y);
+            ctx.moveTo(left - lineWidth2, p.y * 2);
+            ctx.lineTo(right + lineWidth2, p.y * 2);
             ctx.stroke();
           }
           if (p2.x < viewport2d.width) {
             ctx.beginPath();
-            ctx.moveTo(p2.x, top - lineWidth2);
-            ctx.lineTo(p2.x, bottom + lineWidth2);
+            ctx.moveTo(p2.x * 2, top - lineWidth2);
+            ctx.lineTo(p2.x * 2, bottom + lineWidth2);
             ctx.stroke();
           }
           if (p2.y < viewport2d.height) {
             ctx.beginPath();
-            ctx.moveTo(left - lineWidth2, p2.y);
-            ctx.lineTo(right + lineWidth2, p2.y);
+            ctx.moveTo(left - lineWidth2, p2.y * 2);
+            ctx.lineTo(right + lineWidth2, p2.y * 2);
             ctx.stroke();
           }
         }
@@ -987,18 +978,18 @@ class CanvasCircle extends CanvasElement {
 
       ctx.globalAlpha = opacity;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, radp, 0, Math.PI * 2, true);
+      ctx.arc(p.x * 2, p.y * 2, radp * 2, 0, Math.PI * 2, true);
 
       if (this.settings.strokeStyle) {
         ctx.strokeStyle = this.settings.strokeStyle;
         if (this.settings.lineWidth) {
           if (this.settings.isLineWidthVirtual) {
-            ctx.lineWidth = viewport2d.widthVirtualToScreen(this.settings.lineWidth);
+            ctx.lineWidth = viewport2d.widthVirtualToScreen(this.settings.lineWidth) * 2;
           } else {
-            ctx.lineWidth = this.settings.lineWidth; // in pixels
+            ctx.lineWidth = this.settings.lineWidth * 2; // in pixels
           }
         } else
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 2;
         ctx.stroke();
       }
 
@@ -1185,7 +1176,7 @@ class CanvasText extends CanvasElement {
         if (this.settings.textBaseline)
           ctx.textBaseline = this.settings.textBaseline;
 
-        drawText(this.text, ctx, p.x, bp, fontSize, this.settings.fontName);
+        drawText(this.text, ctx, p.x * 2, bp * 2, fontSize * 2, this.settings.fontName);
       } else {
         fontSize = viewport2d.heightVirtualToScreen(this.settings.fontSizeVirtual);
         this.screenFontSize = fontSize; // try to save fontSize
@@ -1193,7 +1184,7 @@ class CanvasText extends CanvasElement {
 
         var bp = p.y + fontSize * k / 2;
         for (var i = 0; i < this.text.length; i++) {
-          drawText(this.text[i], ctx, p.x, bp, fontSize, this.settings.fontName);
+          drawText(this.text[i], ctx, p.x * 2, bp * 2, fontSize * 2, this.settings.fontName);
           bp += fontSize * k;
         }
       }
@@ -1206,65 +1197,6 @@ class CanvasText extends CanvasElement {
         return Math.max(this.x, visibleBox_v.Left) <= Math.min(objRight, visibleBox_v.Right) && Math.max(this.y, visibleBox_v.Top) <= Math.min(objBottom, visibleBox_v.Bottom);
       }
       return Math.max(this.y, visibleBox_v.Top) <= Math.min(objBottom, visibleBox_v.Bottom);
-    };
-  }
-}
-
-/*  A multiline text element on a virtual canvas.
-@param layerid   (any type) id of the layer for this element
-@param id   (any type) id of an element
-@param vx   (number) x of left top corner in virtual space
-@param vy   (number) y of left top corner in virtual space
-@param vh   (number) height of a text
-@param lineWidth (number) width of a line to text output
-@param settings     ({ fillStyle, fontName }) Parameters of the text appearance
-@remarks
-Text width is adjusted using measureText() on first render call.
-*/
-class CanvasMultiLineTextItem extends CanvasElement {
-  constructor(vc, layerid, id, vx, vy, vh, text, lineWidth, settings) {
-    super(vc, layerid, id, vx, vy, vh * 10, vh); // todo: measure properly text width
-
-    this.settings = settings;
-    this.text = text;
-
-    this.render = function (ctx, visibleBox, viewport2d, size_p) {
-      function textOutput(context, text, x, y, lineHeight, fitWidth) {
-        fitWidth = fitWidth || 0;
-
-        if (fitWidth <= 0) {
-          context.fillText(text, x, y);
-          return;
-        }
-        var words = text.split(' ');
-        var currentLine = 0;
-        var idx = 1;
-        while (words.length > 0 && idx <= words.length) {
-          var str = words.slice(0, idx).join(' ');
-          var w = context.measureText(str).width;
-          if (w > fitWidth) {
-            if (idx == 1) {
-              idx = 2;
-            }
-            context.fillText(words.slice(0, idx - 1).join(' '), x, y + (lineHeight * currentLine));
-            currentLine++;
-            words = words.splice(idx - 1);
-            idx = 1;
-          } else {
-            idx++;
-          }
-        }
-        if (idx > 0)
-          context.fillText(words.join(' '), x, y + (lineHeight * currentLine));
-      };
-
-      var p = viewport2d.pointVirtualToScreen(this.x, this.y);
-      ctx.fillStyle = settings.fillStyle;
-      ctx.font = size_p.y + "pt " + settings.fontName;
-      ctx.textBaseline = 'top';
-      var height = viewport2d.heightVirtualToScreen(this.height);
-      textOutput(ctx, this.text, p.x, p.y, height, lineWidth * height);
-      // ctx.fillText(this.text, p.x, p.y);
     };
   }
 }

@@ -50,7 +50,7 @@ export const infodotTitleHeight = 60.0 / 489;
 export const infodotBibliographyHeight = 10.0 / 489;
 export const infoDotBorderColor = 'rgb(232,232,232)';
 export const infoDotHoveredBorderColor = 'white';
-export const infoDotFillColor = 'rgb(92,92,92)';
+export const infoDotFillColor = 'rgb(200, 200, 200)';
 export const infoDotTinyContentImageUri = '/images/tinyContent.png';
 export const infodotMaxContentItemsCount = 10;
 
@@ -74,7 +74,7 @@ export const contentItemHeaderFontName = 'Arial';
 export const contentItemHeaderFontColor = 'white';
 
 export const contentItemBoundingBoxBorderWidth = 13.0 / 520;
-export const contentItemBoundingBoxFillColor = 'rgb(36,36,36)';
+export const contentItemBoundingBoxFillColor = 'rgb(60,60,60)';
 export const contentItemBoundingBoxBorderColor = undefined;
 export const contentItemBoundingHoveredBoxBorderColor = 'white';
 
