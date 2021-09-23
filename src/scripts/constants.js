@@ -43,12 +43,12 @@ export const timelineGradientFillStyle = null;
 
 export const infodotShowContentZoomLevel = 9;
 export const infodotShowContentThumbZoomLevel = 2;
-export const infoDotHoveredBorderWidth = 40.0 / 450;
+export const infoDotHoveredBorderWidth = 20.0 / 450;
 export const infoDotBorderWidth = 27.0 / 450;
 export const infodotTitleWidth = 200.0 / 489;
 export const infodotTitleHeight = 60.0 / 489;
 export const infodotBibliographyHeight = 10.0 / 489;
-export const infoDotBorderColor = 'rgb(232,232,232)';
+export const infoDotBorderColor = 'rgb(200, 200, 200)';
 export const infoDotHoveredBorderColor = 'white';
 export const infoDotFillColor = 'rgb(200, 200, 200)';
 export const infoDotTinyContentImageUri = '/images/tinyContent.png';
@@ -73,7 +73,7 @@ export const contentItemFontHeight = 140.0 / 540;
 export const contentItemHeaderFontName = 'Arial';
 export const contentItemHeaderFontColor = 'white';
 
-export const contentItemBoundingBoxBorderWidth = 13.0 / 520;
+export const contentItemBoundingBoxBorderWidth = 6.0 / 520;
 export const contentItemBoundingBoxFillColor = 'rgb(60,60,60)';
 export const contentItemBoundingBoxBorderColor = undefined;
 export const contentItemBoundingHoveredBoxBorderColor = 'white';

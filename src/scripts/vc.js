@@ -470,7 +470,6 @@ export default function VirtualCanvas() {
     invalidate: function () {
       const viewbox = this.visibleToViewBox(this.options.visible);
       const viewport = this.getViewport();
-
       this.renderCanvas(this.layersContent, viewbox, viewport);
     },
 

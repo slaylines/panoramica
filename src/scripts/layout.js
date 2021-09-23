@@ -641,6 +641,8 @@ export default class Layout {
           }
           tl.realY += timeline.y;
 
+          /*
+          // TODO: из-за фиксированной высоты ячейки и отсутствия aspect ration мы не можем менять посчитанные высоты
           tl.height = Math.max(
             tl.height,
             (constants.timelineMinAspect / 4) * (tl.right - tl.left)
@@ -649,6 +651,7 @@ export default class Layout {
             tl.height,
             ((tl.right - tl.left) * 3) / constants.timelineMinAspect
           );
+          */
 
           Arrange(tl, measureContext);
         });
@@ -662,7 +665,8 @@ export default class Layout {
     }
 
     function CalcInfodotSize(timeline) {
-      return Math.min(timeline.height, timeline.width) * 0.85;
+      const count = timeline.exhibits.length + 1;
+      return Math.min(timeline.height, timeline.width / count) * 0.95;
       // return (timeline.right - timeline.left) / 20.0;
     }
 
