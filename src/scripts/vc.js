@@ -306,7 +306,7 @@ export default function VirtualCanvas() {
         }
       }
 
-      // update tooltip for currently tooltiped infodot|t if tooltip is enabled for this infodot|timeline
+      // update tooltip for currently tooltiped infodot or timeline if tooltip is enabled for this infodot or timeline
       if ((this.currentlyHoveredInfodot && this.currentlyHoveredInfodot.tooltipEnabled) || (this.currentlyHoveredTimeline && this.currentlyHoveredTimeline.tooltipEnabled && this.tooltipMode !== 'infodot')) {
         let obj = null;
 

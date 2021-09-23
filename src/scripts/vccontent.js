@@ -854,21 +854,13 @@ class CanvasTimeline extends CanvasRectangle {
     this.tooltipEnabled = true;
     this.tooltipIsShown = false;
 
+    const tooltip = $('.vc-tooltip');
+
     this.onmouseclick = () => {
       return zoomToElementHandler(this, 1.0);
     };
 
     this.onmousehover = function (pv, e) {
-      // previous timeline also hovered and mouse leave don't appear, hide it
-      // if infodot is null or undefined, we should stop animation
-      // if it's ok, infodot's tooltip don't wink
-      if (this.vc.currentlyHoveredTimeline && this.vc.currentlyHoveredTimeline.id !== id) {
-        this.vc.hideTooltip();
-        this.vc.currentlyHoveredTimeline.tooltipIsShown = false;
-      } else if (!timelineinfo.header) {
-        this.vc.hideTooltip();
-      }
-
       this.vc.currentlyHoveredTimeline = this;
 
       this.settings.strokeStyle = timelineinfo.strokeStyle;
@@ -879,9 +871,7 @@ class CanvasTimeline extends CanvasRectangle {
       if (this.vc.tooltipMode !== 'infodot') {
         this.vc.tooltipMode = 'timeline';
 
-        if (!this.tooltipIsShown && timelineinfo.header) {
-          const tooltip = $('.vc-tooltip');
-
+        if ((!this.tooltipIsShown || !tooltip.hasClass('visible')) && timelineinfo.header) {
           tooltip.find('span').text(timelineinfo.header);
           tooltip.addClass('visible');
 
@@ -891,6 +881,7 @@ class CanvasTimeline extends CanvasRectangle {
         }
       }
     };
+
     this.onmouseunhover = function (pv, e) {
       if (this.vc.currentlyHoveredTimeline) {
         this.vc.currentlyHoveredTimeline = null;
@@ -1761,7 +1752,7 @@ class CanvasInfodot extends CanvasCircle {
 
       // clear tooltipIsShown flag for currently hovered timeline
       // it can be null because of mouse events sequence: mouseenter for infodot -> mousehover for timeline -> mouseunhover for timeline
-      if (this.vc.currentlyHoveredTimeline != null) {
+      if (this.vc.currentlyHoveredTimeline !== null) {
         // stop active tooltip fadein animation and hide tooltip
         this.vc.hideTooltip();
         this.vc.currentlyHoveredTimeline.tooltipIsShown = false;
@@ -1793,8 +1784,7 @@ class CanvasInfodot extends CanvasCircle {
       this.settings.lineWidth = constants.infoDotBorderWidth * radv;
       this.vc.requestInvalidate();
 
-      if (this.tooltipIsShown)
-        this.vc.hideTooltip();
+      if (this.tooltipIsShown) this.vc.hideTooltip();
 
       this.tooltipIsShown = false;
       this.vc.tooltipMode = 'default';
