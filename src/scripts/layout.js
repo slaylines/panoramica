@@ -724,6 +724,7 @@ export default class Layout {
           offsetY: timeline.offsetY,
           initHeight: timeline.initHeight,
           hideBorder: timeline.hideBorder,
+          contentText: timeline.contentText,
         }
       );
 
@@ -751,7 +752,7 @@ export default class Layout {
             {
               isBuffered: false,
               guid: childInfodot.id,
-              title: childInfodot.title,
+              title: contentItems.length ? contentItems[0].title : childInfodot.title,
               offsetY: childInfodot.offsetY,
               date: childInfodot.time,
               isCirca: childInfodot.isCirca,

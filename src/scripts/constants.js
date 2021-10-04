@@ -72,6 +72,7 @@ export const contentItemAudioTopMargin = 120.0 / 540;
 export const contentItemFontHeight = 140.0 / 540;
 export const contentItemHeaderFontName = 'Arial';
 export const contentItemHeaderFontColor = 'white';
+export const contentItemContentFontColor = '#333333';
 
 export const contentItemBoundingBoxBorderWidth = 6.0 / 520;
 export const contentItemBoundingBoxFillColor = 'rgb(60,60,60)';

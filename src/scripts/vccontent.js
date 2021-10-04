@@ -861,6 +861,8 @@ class CanvasTimeline extends CanvasRectangle {
     };
 
     this.onmousehover = function (pv, e) {
+      if (!timelineinfo.header) return;
+
       this.vc.currentlyHoveredTimeline = this;
 
       this.settings.strokeStyle = timelineinfo.strokeStyle;
@@ -915,6 +917,20 @@ class CanvasTimeline extends CanvasRectangle {
 
       if (!timelineinfo.hideBorder) {
         this.base_render(ctx, visibleBox, viewport2d, size_p, opacity);
+      }
+
+      if (timelineinfo.contentText) {
+        removeChild(vc, this,  id + "__content_text");
+        addText(this, layerid, id + "__content_text",
+          vx + vw * 0.1, vy + vh * 0.4, vy + vh * 0.5, vh * 0.25, timelineinfo.contentText, {
+          fontName: constants.contentItemHeaderFontName,
+          fillStyle: constants.contentItemContentFontColor,
+          textBaseline: 'middle',
+          textAlign: 'left',
+          opacity: 1,
+          wrapText: false,
+          numberOfLines: 1,
+        }, vw * 0.8);
       }
 
       if (this.settings.hoverAnimationDelta) {
@@ -1258,7 +1274,7 @@ class CanvasImage extends CanvasElement {
         return;
       var p = viewport2d.pointVirtualToScreen(this.x, this.y);
       ctx.globalAlpha = opacity;
-      ctx.drawImage(this.img, p.x, p.y, size_p.x, size_p.y);
+      ctx.drawImage(this.img, p.x * 2, p.y * 2, size_p.x * 2, size_p.y * 2);
     };
 
     this.onRemove = function () {

@@ -1,6 +1,6 @@
 export const data = {
   id: '__root__',
-  start: -1300000000,
+  start: -1450000000,
   end: 100000,
   title: '',
   regime: 'Cosmos',
@@ -8,6 +8,56 @@ export const data = {
   exhibits: [],
   timelines: [
     {
+      id: 't0',
+      start: -1450000000,
+      end: -1300000000,
+      title: '',
+      regime: '',
+      hideBorder: true,
+      exhibits: [],
+      timelines: [
+        {
+          id: 't0_1',
+          start: -1450000000,
+          end: -1300000000,
+          title: 'Карты',
+          contentText: 'Карты',
+          regime: '',
+          level: 1,
+          exhibits: [],
+        }, {
+          id: 't0_2',
+          start: -1450000000,
+          end: -1300000000,
+          title: 'Общая характеристика',
+          contentText: 'Общая хар-ка',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines: [],
+        }, {
+          id: 't0_3',
+          start: -1450000000,
+          end: -1300000000,
+          title: 'Геология',
+          contentText: 'Геология',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines: [],
+        }, {
+          id: 't0_4',
+          start: -1450000000,
+          end: -1300000000,
+          title: 'Биология',
+          contentText: 'Биология',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines: [],
+        },
+      ],
+    }, {
       id: 't1',
       start: -1300000000,
       end: -1030000000,
@@ -59,6 +109,16 @@ export const data = {
           end: -1030000000,
           title: 'T1: Средний рифей — Биология',
           regime: 'Cosmos',
+          level: 1,
+          exhibits: [],
+          timelines: [],
+        }, {
+          id: 't1_5',
+          start: -1300000000,
+          end: -1030000000,
+          title: 'T1: Средний рифей',
+          contentText: 'T1: Средний рифей',
+          regime: '',
           level: 1,
           exhibits: [],
           timelines: [],
@@ -133,6 +193,16 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
+        }, {
+          id: 't2_5',
+          start: -1030000000,
+          end: -600000000,
+          title: 'T2: Верхний рифей',
+          contentText: 'T2: Верхний рифей',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines: [],
         }
       ],
     }, {
@@ -180,7 +250,17 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
-        },
+        }, {
+          id: 't3_5',
+          start: -600000000,
+          end: -541000000,
+          title: 'T3: Венд',
+          contentText: 'T3: Венд',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines: [],
+        }
       ],
     }, {
       id: 't4',
@@ -227,7 +307,17 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
-        },
+        }, {
+          id: 't4_5',
+          start: -541000000,
+          end: -485000000,
+          title: 'T4: Кембрий',
+          contentText: 'T4: Кембрий',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines: [],
+        }
       ],
     }, {
       id: 't5',
@@ -248,7 +338,7 @@ export const data = {
           exhibits: [
             {
               id: 'e1',
-              time: -457533333,
+              time: -456533333,
               title: 'Карты',
               contentItems: [{
                 id: 'c1',
@@ -259,7 +349,7 @@ export const data = {
               }]
             }, {
               id: 'e2',
-              time: -471266666,
+              time: -472266666,
               title: 'Карты',
               contentItems: [{
                 id: 'c1',
@@ -296,26 +386,41 @@ export const data = {
           title: 'T5: Ордовик — Биология',
           regime: 'Cosmos',
           level: 1,
-          exhibits: [{
-            id: 'e4',
-            time: -464400000,
-            title: 'Биология',
-            contentItems: [
-              {
+          exhibits: [
+            {
+              id: 'e1',
+              time: -456533333,
+              title: 'Биология',
+              contentItems: [{
                 id: 'c1',
                 title: 'Картинка моря ордовика.',
                 description: '',
                 mediaType: 'image',
                 uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T5P4.jpg'
-              }, {
+              }]
+            }, {
+              id: 'e2',
+              time: -472266666,
+              title: 'Карты',
+              contentItems: [{
                 id: 'c2',
                 title: 'Ссылки по Органике Ордовика.',
                 description: '',
                 mediaType: 'pdf',
                 uri: 'https://raw.githubusercontent.com/slaylines/panoramica/main/data/T5P4_2.pdf'
-              },
-            ],
-          }],
+              }]
+            }
+          ],
+          timelines: [],
+        }, {
+          id: 't5_5',
+          start: -485000000,
+          end: -443800000,
+          title: 'T5: Ордовик',
+          contentText: 'T5: Ордовик',
+          regime: '',
+          level: 1,
+          exhibits: [],
           timelines: [],
         }
       ],
@@ -364,6 +469,16 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
+        }, {
+          id: 't6_5',
+          start: -443800000,
+          end: -419000000,
+          title: 'T6: Силур',
+          contentText: 'T6: Силур',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines:[],
         }
       ],
     }, {
@@ -411,6 +526,16 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
+        }, {
+          id: 't7_5',
+          start: -419000000,
+          end: -358900000,
+          title: 'T7: Девон',
+          contentText: 'T7: Девон',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines:[],
         }
       ],
     }, {
@@ -458,6 +583,16 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
+        }, {
+          id: 't8_5',
+          start: -358900000,
+          end: -298900000,
+          title: 'T8: Каменугольный',
+          contentText: 'T8: Каменугольный',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines:[],
         }
       ],
     }, {
@@ -505,6 +640,16 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
+        }, {
+          id: 't9_5',
+          start: -298900000,
+          end: -251900000,
+          title: 'T9: Пермь',
+          contentText: 'T9: Пермь',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines:[],
         }
       ],
     }, {
@@ -552,6 +697,16 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
+        }, {
+          id: 't10_5',
+          start: -251900000,
+          end: -201000000,
+          title: 'T10: Триас',
+          contentText: 'T10: Триас',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines:[],
         }
       ],
     }, {
@@ -599,6 +754,16 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
+        }, {
+          id: 't11_5',
+          start: -201000000,
+          end: -145000000,
+          title: 'T11: Юра',
+          contentText: 'T11: Юра',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines:[],
         }
       ],
     }, {
@@ -646,6 +811,16 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
+        }, {
+          id: 't12_5',
+          start: -145000000,
+          end: -66000000,
+          title: 'T12: Мел',
+          contentText: 'T12: Мел',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines:[],
         }
       ],
     }, {
@@ -693,6 +868,16 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
+        }, {
+          id: 't13_5',
+          start: -66000000,
+          end: -23000000,
+          title: 'T13: Палеоген',
+          contentText: 'T13: Палеоген',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines:[],
         }
       ],
     }, {
@@ -740,7 +925,17 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
-        },
+        }, {
+          id: 't14_5',
+          start: -23000000,
+          end: -2580000,
+          title: 'T14: Неоген',
+          contentText: 'T14: Неоген',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines:[],
+        }
       ],
     }, {
       id: 't15',
@@ -787,7 +982,17 @@ export const data = {
           level: 1,
           exhibits: [],
           timelines: [],
-        },
+        }, {
+          id: 't15_5',
+          start: -2580000,
+          end: 0,
+          title: 'T15: Антропоген',
+          contentText: 'T15: Антропоген',
+          regime: '',
+          level: 1,
+          exhibits: [],
+          timelines:[],
+        }
       ],
     },
   ],
