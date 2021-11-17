@@ -132,7 +132,6 @@ export default class Axis {
 
         markerText.text(text);
         marker.css('transform', `translateX(${this.markerPosition - marker.width() / 2}px`);
-        marker.css('visibility', 'visible');
       }
     };
 
@@ -276,54 +275,39 @@ export default class Axis {
    * Calculates and caches positions of ticks and labels' size.
   */
   getTicksInfo() {
-    const { length } = this.ticks;
     const h = this.isHorizontal ? this.canvasHeight : 0;
 
-    this.ticksInfo = new Array(length);
-
-    for (let i = 0; i < length; i++) {
-      const tick = this.ticks[i];
-
-      if (tick.label) {
-        const size = tick.label.size;
-        let { width, height } = size;
-
-        if (!width) width = this.ctx.measureText(tick.label[0].textContent).width * 1.5;
-        if (!height) height = (this.isHorizontal ? h : parseFloat(this.fontSize)) + 8;
-
-        this.ticksInfo[i] = {
-          position: this.getCoordinateFromTick(tick.position),
-          width: width,
-          height: height,
+    this.ticksInfo = this.ticks.map(({ label, position }) => {
+      if (label) {
+        return {
+          position: this.getCoordinateFromTick(position),
+          width: this.ctx.measureText(label[0].textContent).width,
+          height: (this.isHorizontal ? h : parseFloat(this.fontSize)) + 8,
           hasLabel: true,
         };
       } else {
-        this.ticksInfo[i] = {
-          position: this.getCoordinateFromTick(tick.position),
+        return {
+          position: this.getCoordinateFromTick(position),
           width: 0,
           height: 0,
           hasLabel: false,
         };
       }
-    }
+    });
   }
 
   /*
    * Adds new labels to container and apply this.styles to them.
   */
   addNewLabels() {
-    for (let i = 0, len = this.ticks.length; i < len; i++) {
-      const label = this.ticks[i].label;
-
+    this.ticks.forEach(({ label }) => {
       if (label && !label.hasClass('cz-timescale-label')) {
         const labelDiv = label[0];
 
         label.addClass('cz-timescale-label');
-        label.size = { width: labelDiv.offsetWidth, height: labelDiv.offsetHeight };
-
         this.labelsDiv[0].appendChild(labelDiv);
       }
-    }
+    });
   }
 
   /*
@@ -622,7 +606,7 @@ class TickSource {
 
       if (i !== -1) {
         this.isUsedPool[i] = true;
-        this.styles[i].display = 'block';
+        this.styles[i].opacity = 1;
 
         return this.divPool[i];
       } else {
@@ -630,13 +614,12 @@ class TickSource {
 
         if (i !== -1) {
           this.isUsedPool[i] = true;
-          this.styles[i].display = 'block';
+          this.styles[i].opacity = 1;
           this.inners[i] = inner;
 
           const div = this.divPool[i][0];
 
           div.innerHTML = inner;
-          this.divPool[i].size = { width: div.offsetWidth, height: div.offsetHeight };
 
           return this.divPool[i];
         } else {
@@ -647,7 +630,6 @@ class TickSource {
           this.inners[this.length] = inner;
           this.styles[this.length] = div[0].style;
 
-          div.size = undefined;
           this.length += 1;
 
           return div;
@@ -661,7 +643,7 @@ class TickSource {
         if (this.isUsedPool[i]) {
           this.isUsedPool[i] = false;
         } else {
-          this.styles[i].display = 'none';
+          this.styles[i].opacity = 0;
         }
       }
     };
@@ -748,7 +730,7 @@ class TickSource {
 
   hideDivs() {
     for (let i = 0; i < this.length; i++) {
-      this.styles[i].display = 'none';
+      this.styles[i].opacity = 0;
     }
   }
 
