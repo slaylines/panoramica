@@ -110,7 +110,7 @@ export const deeperZoomConstraints = [{
   {
     left: -12000 /*approx 10k BC */ ,
     right: 0,
-    scale: 0.00006
+    scale: 0.0006
   }
 ];
 

@@ -432,53 +432,52 @@ export default class Axis {
    * only label in the middle of timescale.
   */
   renderMajorTicks() {
-    this.ctx.beginPath();
-
-    for (let i = 0, len = this.ticks.length; i < len; i++) {
-      const position = this.ticksInfo[i].position;
+    this.ticks.forEach((tick, i) => {
+      this.ctx.beginPath();
 
       if (this.isHorizontal) {
+        const { position } = this.ticksInfo[i];
         let shift = this.ticksInfo[i].width / 2;
 
         if (i === 0 && position < shift) {
           shift = 0;
-        } else if (i === len - 1 && position + shift > this.size) {
+        } else if (i === this.ticks.length - 1 && position + shift > this.size) {
           shift *= 2;
         }
 
         this.ctx.moveTo(position * 2, 2);
         this.ctx.lineTo(position * 2, (1 + constants.tickLength) * 2);
 
-        if (this.ticks[i].label) {
-          this.ticks[i].label.css('left', position - shift);
+        if (tick.label) {
+          tick.label.css('left', position - shift);
         }
       } else {
-        position = (this.size - 1) - position;
-        shift = this.ticksInfo[i].height / 2;
+        const position = this.size - 1 - this.ticksInfo[i].position;
+        let shift = this.ticksInfo[i].height / 2;
 
         if (i === 0 && position + shift > this.size) {
           shift *= 2;
-        } else if (i === len - 1 && position < shift) {
+        } else if (i === this.ticks.length - 1 && position < shift) {
           shift = 0;
         }
 
         this.ctx.moveTo(2, position * 2);
         this.ctx.lineTo((1 + constants.tickLength) * 2, position * 2);
 
-        if (this.ticks[i].label) {
-          this.ticks[i].label.css('top', position - shift);
+        if (tick.label) {
+          tick.label.css('top', position - shift);
           if (this.position == 'left') {
-            this.ticks[i].label.css(
+            tick.label.css(
               'left',
               this.textSize - (this.rotateLabels ? this.ticksInfo[i].height : this.ticksInfo[i].width)
             );
           }
         }
       }
-    }
 
-    this.ctx.stroke();
-    this.ctx.closePath();
+      this.ctx.stroke();
+      this.ctx.closePath();
+    });
   }
 
   /*
@@ -573,9 +572,9 @@ export default class Axis {
     this.ctx.lineWidth = constants.timescaleThickness * 2;
 
     if (this.isHorizontal) {
-      this.ctx.clearRect(0, 0, this.size, this.canvasSize);
+      this.ctx.clearRect(0, 0, this.size * 2, this.canvasSize * 2);
     } else {
-      this.ctx.clearRect(0, 0, this.canvasSize, this.size);
+      this.ctx.clearRect(0, 0, this.canvasSize * 2, this.size * 2);
     }
 
     // Render timescale.
@@ -1368,7 +1367,7 @@ class DateTickSource extends TickSource {
       this.initRegime(range);
 
       const date = dates.getYMDFromCoordinate(time, true);
-      const labelText = `${date.year}.${date.month + 1}.${date.day}`;
+      const labelText = `${date.day}.${date.month + 1}.${date.year}`;
 
       return labelText;
     };

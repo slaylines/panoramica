@@ -1,7 +1,7 @@
 export const data = {
   id: '__root__',
   start: -1450000000,
-  end: 100000,
+  end: 10000000,
   title: '',
   regime: 'Cosmos',
   hideBorder: true,
@@ -940,7 +940,7 @@ export const data = {
     }, {
       id: 't15',
       start: -2580000,
-      end: 0,
+      end: 10000000,
       title: 'T15: Антропоген',
       regime: 'Earth',
       hideBorder: true,
@@ -949,7 +949,7 @@ export const data = {
         {
           id: 't15_1',
           start: -2580000,
-          end: 0,
+          end: 10000000,
           title: 'T15: Антропоген — Карты',
           regime: 'Earth',
           level: 1,
@@ -958,7 +958,7 @@ export const data = {
         }, {
           id: 't15_2',
           start: -2580000,
-          end: 0,
+          end: 10000000,
           title: 'T15: Антропоген — Общая характеристика',
           regime: 'Earth',
           level: 1,
@@ -967,7 +967,7 @@ export const data = {
         }, {
           id: 't15_3',
           start: -2580000,
-          end: 0,
+          end: 10000000,
           title: 'T15: Антропоген — Геология',
           regime: 'Earth',
           level: 1,
@@ -976,7 +976,7 @@ export const data = {
         }, {
           id: 't15_4',
           start: -2580000,
-          end: 0,
+          end: 10000000,
           title: 'T15: Антропоген — Биология',
           regime: 'Earth',
           level: 1,
@@ -985,7 +985,7 @@ export const data = {
         }, {
           id: 't15_5',
           start: -2580000,
-          end: 0,
+          end: 10000000,
           title: 'T15: Антропоген',
           contentText: 'T15: Антропоген',
           regime: '',
