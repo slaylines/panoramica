@@ -665,8 +665,7 @@ export default class Layout {
     }
 
     function CalcInfodotSize(timeline) {
-      const count = timeline.exhibits.length + 1;
-      return Math.min(timeline.height, timeline.width / count) * 0.95;
+      return Math.min(timeline.height, timeline.width / timeline.exhibits.length);
       // return (timeline.right - timeline.left) / 20.0;
     }
 

@@ -1755,10 +1755,6 @@ class CanvasInfodot extends CanvasCircle {
       this.vc.requestInvalidate();
     };
 
-    this.onmouseclick = function () {
-      return zoomToElementHandler(this, 1.0);
-    };
-
     this.onmouseenter = function (e) {
       this.settings.strokeStyle = constants.infoDotHoveredBorderColor;
       this.settings.lineWidth = constants.infoDotHoveredBorderWidth * radv;
@@ -1809,7 +1805,7 @@ class CanvasInfodot extends CanvasCircle {
     };
 
     this.onmouseclick = function () {
-      return zoomToElementHandler(this, 1.0);
+      // return zoomToElementHandler(this, 1.0);
     };
 
     // Building dynamic LOD content
@@ -1869,9 +1865,10 @@ class CanvasInfodot extends CanvasCircle {
             for (var i = 0; i < items.length; i++)
               addChild(contentItem, items[i], false);
         }
-        if (contentItem == null)
-          return null;
+        if (!contentItem) return null;
 
+        /*
+        // Uncomment to show infodot title
         var titleWidth = constants.infodotTitleWidth * radv * 2;
         var titleHeight = constants.infodotTitleHeight * radv * 2;
         var centralSquareSize = (270 / 2 + 5) / 450 * 2 * radv;
@@ -1905,8 +1902,7 @@ class CanvasInfodot extends CanvasCircle {
           wrapText: true,
           numberOfLines: 2
         }, titleWidth);
-
-        var imageSize = (titleTop - this.y) * 0.75;
+        */
 
         if (contentItem) {
           this.hasContentItems = true;
@@ -1971,6 +1967,7 @@ class CanvasInfodot extends CanvasCircle {
     @remarks The method is implemented for each particular VirtualCanvas element.
     */
     this.render = function (ctx, visibleBox, viewport2d, size_p, opacity) {
+      /*
       this.prototype.render.call(this, ctx, visibleBox, viewport2d, size_p, opacity); // rendering the circle
 
       var sw = viewport2d.widthVirtualToScreen(strokeWidth);
@@ -1994,6 +1991,7 @@ class CanvasInfodot extends CanvasCircle {
 
       ctx.lineWidth = sw;
       ctx.strokeStyle = constants.contentItemBoundingBoxFillColor;
+      */
     };
 
     /* Checks whether the given point (virtual) is inside the object
