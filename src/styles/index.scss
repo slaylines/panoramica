@@ -22,6 +22,7 @@ main {
   width: 100%;
   height: calc(100% - 3em);
   background: #fff;
+  color: #333;
 }
 
 header {
@@ -57,4 +58,22 @@ a, .link {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+.languages {
+  display: flex;
+  margin-left: auto;
+  font-size: 0.85em;
+
+  span {
+    display: inline-block;
+    margin: 0 0.4em;
+
+    &.active {
+      color: #333;
+      border-bottom-color: transparent;
+      cursor: pointer;
+      pointer-events: none;
+    }
+  }
 }

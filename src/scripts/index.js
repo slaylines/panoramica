@@ -12,9 +12,16 @@ import Layout from './layout';
 import { VisibleRegion2d, Viewport2d } from './viewport';
 import { zoomToElementHandler } from './vccontent';
 
+const translations = {
+  nature: { ru: 'Природа', en: 'Nature' },
+  socium: { ru: 'Социум', en: 'Socium' },
+};
+
 $(document).ready(() => {
   // Used in viewport-animation.js
   window.globalAnimationID = 1;
+
+  let language = 'ru';
 
   const $axis = $('#axis');
   const axis = new Axis($axis);
@@ -86,12 +93,38 @@ $(document).ready(() => {
     controller.moveToVisible(e.newvisible, e.noAnimation);
   });
 
-  $('.link.nature-link').on('click', () => {
-    zoomToElementHandler(data.element, 1.0);
+  const natureLink = $('.link.nature-link');
+  const sociumLink = $('.link.socium-link');
+
+  natureLink.on('click', () => zoomToElementHandler(data.element, 1.0));
+  sociumLink.on('click', () => zoomToElementHandler(data.timelines[data.timelines.length - 1].element, 1.0));
+
+  const onLanguageChange = lang => {
+    language = lang;
+    natureLink.text(translations.nature[lang]);
+    sociumLink.text(translations.socium[lang]);
+
+    // TODO: чтобы перевести лейблы оси надо
+    // - передавать язык в ось и перерисовывать её при его изменениях
+    // - сделать маппинг для всех режимов
+    // - использовать язык в getMarkerLabel и getLabel
+  };
+
+  const ruLink = $('.languages [name="ru"]');
+  const enLink = $('.languages [name="en"]');
+
+  ruLink.on('click', () => {
+    if (language === 'ru') return;
+    onLanguageChange('ru');
+    enLink.removeClass('active');
+    ruLink.addClass('active');
   });
 
-  $('.link.socium-link').on('click', () => {
-    zoomToElementHandler(data.timelines[data.timelines.length - 1].element, 1.0);
+  enLink.on('click', () => {
+    if (language === 'en') return;
+    onLanguageChange('en');
+    ruLink.removeClass('active');
+    enLink.addClass('active');
   });
 
   zoomToElementHandler(data.element, 1.0, true);

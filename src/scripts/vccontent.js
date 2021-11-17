@@ -1762,7 +1762,7 @@ class CanvasInfodot extends CanvasCircle {
 
       // clear tooltipIsShown flag for currently hovered timeline
       // it can be null because of mouse events sequence: mouseenter for infodot -> mousehover for timeline -> mouseunhover for timeline
-      if (this.vc.currentlyHoveredTimeline !== null) {
+      if (this.vc.currentlyHoveredTimeline) {
         // stop active tooltip fadein animation and hide tooltip
         this.vc.hideTooltip();
         this.vc.currentlyHoveredTimeline.tooltipIsShown = false;
