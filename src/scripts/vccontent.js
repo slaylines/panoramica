@@ -838,8 +838,6 @@ class CanvasTimeline extends CanvasRectangle {
     this.settings.showFromCirca = this.fromIsCirca;
     this.settings.showToCirca = this.toIsCirca;
     this.settings.showInfinite = (timelineinfo.endDate == 9999);
-
-    this.regime = timelineinfo.regime;
     this.settings.gradientOpacity = 0;
 
     if (constants.timelineGradientFillStyle) {

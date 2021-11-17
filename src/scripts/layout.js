@@ -696,14 +696,12 @@ export default class Layout {
     }
 
     function Convert(parent, timeline) {
-      //Creating timeline
-      var tlColor = GetTimelineColor(timeline);
       var t1 = addTimeline(
         parent,
         'layerTimelines',
         't' + timeline.id,
         {
-          color: tlColor,
+          color: timeline.color,
           isBuffered: timeline.timelines instanceof Array,
           guid: timeline.id,
           timeStart: timeline.left,
@@ -714,7 +712,6 @@ export default class Layout {
           fillStyle: '#fff',
           titleRect: timeline.titleRect,
           strokeStyle: '#333',
-          regime: timeline.regime,
           endDate: timeline.endDate,
           fromIsCirca: timeline.fromIsCirca || false,
           toIsCirca: timeline.toIsCirca || false,
@@ -767,17 +764,6 @@ export default class Layout {
         timeline.timelines.forEach(function (childTimeLine) {
           Convert(t1, childTimeLine);
         });
-      }
-    }
-
-    function GetTimelineColor(timeline) {
-      if (timeline.regime == 'Cosmos') {
-        return '#c7c0f3';
-      } else if (timeline.regime == 'Earth') {
-        return '#c0c7a9';
-      } else {
-        // Return null to allow the settings configuration to choose color.
-        return null;
       }
     }
 
