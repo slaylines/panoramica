@@ -743,7 +743,7 @@ export default class Layout {
             'e' + childInfodot.id,
             (childInfodot.left + childInfodot.right) / 2.0,
             childInfodot.y,
-            (0.8 * childInfodot.size) / 2.0,
+            (0.9 * childInfodot.size) / 2.0,
             contentItems,
             {
               isBuffered: false,

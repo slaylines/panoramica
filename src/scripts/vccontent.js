@@ -1742,8 +1742,7 @@ class CanvasInfodot extends CanvasCircle {
     }
 
     var vyc = this.newY + radv;
-    var innerRad = radv - constants.infoDotHoveredBorderWidth * radv;
-    this.outerRad = radv;
+    var innerRad = radv; // - constants.infoDotHoveredBorderWidth * radv;
 
     this.reactsOnMouse = true;
 
